@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trajectory Explorer | Elephant Movement Analysis</title>
+    <meta name="description"
+        content="Interactive trajectory explorer with animated elephant movements, behavioral states, and real-time statistics.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/explorer.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+                <span class="brand-text">Elephant Movement Analysis</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Overview</a></li>
+                <li><a href="methodology.html" class="nav-link">Methodology</a></li>
+                <li><a href="explorer.html" class="nav-link active">Trajectory Explorer</a></li>
+                <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
+                <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="explorer-container">
+        <!-- Left Panel - Info & Instructions -->
+        <div class="info-panel">
+            <div class="panel-section">
+                <h3 class="panel-title">About This View</h3>
+                <p class="info-text">
+                    This interactive map shows elephant movement trajectories color-coded by behavioral state:
+                </p>
+                <ul class="info-list">
+                    <li><span class="color-dot resting"></span> Resting (Blue)</li>
+                    <li><span class="color-dot foraging"></span> Foraging (Green)</li>
+                    <li><span class="color-dot movement"></span> Movement (Orange)</li>
+                </ul>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Data Availability</h3>
+                <div class="availability-grid">
+                    <div class="availability-item">
+                        <strong>E1, E2, E6:</strong> Pre only
+                    </div>
+                    <div class="availability-item">
+                        <strong>E3, E4, E5:</strong> All periods
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Instructions</h3>
+                <ol class="instructions-list">
+                    <li>Select an elephant from the right panel</li>
+                    <li>Choose a study period (Pre/Interim/Post)</li>
+                    <li>Use the timeline slider to scrub through time</li>
+                    <li>Click play to animate the trajectory</li>
+                    <li>Toggle behavioral filters to focus on specific states</li>
+                    <li>Click on markers for detailed information</li>
+                </ol>
+            </div>
+
+            <div class="panel-section">
+                <div class="note-box">
+                    <strong>Note:</strong> Loading CSV data. Large datasets may take a
+                    moment to load. Use the "Max Points" selector to adjust performance.
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3 class="panel-title">Statistics Summary</h3>
+                <div class="stats-display-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Points</span>
+                        <span class="stat-value" id="total-points">Loading...</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Date Range</span>
+                        <span class="stat-value" id="date-range">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="behavior-distribution">
+                    <h4 class="distribution-title">Time Budget Distribution</h4>
+                    <div class="distribution-bar">
+                        <div class="bar-segment resting" style="width: 33.3%"></div>
+                        <div class="bar-segment foraging" style="width: 33.3%"></div>
+                        <div class="bar-segment movement" style="width: 33.4%"></div>
+                    </div>
+                    <div class="distribution-legend-grid">
+                        <div class="legend-item">
+                            <span class="legend-color resting"></span>
+                            <span class="legend-label">Resting: <strong id="resting-pct">33%</strong></span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color foraging"></span>
+                            <span class="legend-label">Foraging: <strong id="foraging-pct">33%</strong></span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color movement"></span>
+                            <span class="legend-label">Movement: <strong id="movement-pct">34%</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center - Map -->
+        <div class="map-container">
+            <div id="map"></div>
+
+            <!-- Timeline Controls -->
+            <div class="timeline-controls">
+                <div class="timeline-header">
+                    <div class="current-time">
+                        <span id="current-time">-</span>
+                        <span class="behavior-badge" id="current-behavior">Idle</span>
+                    </div>
+                    <div class="playback-controls">
+                        <button class="control-btn" id="play-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                        </button>
+                        <button class="control-btn" id="pause-btn" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <rect x="6" y="4" width="4" height="16" />
+                                <rect x="14" y="4" width="4" height="16" />
+                            </svg>
+                        </button>
+                        <button class="control-btn" id="reset-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="1 4 1 10 7 10" />
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="speed-control">
+                        <label>Speed:</label>
+                        <select id="speed-select">
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="2">2x</option>
+                            <option value="5">5x</option>
+                            <option value="10">10x</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="timeline-slider">
+                    <input type="range" id="time-slider" min="0" max="100" value="0">
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div class="loading-overlay" id="loading">
+                <div class="spinner"></div>
+                <p>Loading trajectory data...</p>
+            </div>
+
+            <!-- Data Status -->
+            <div class="data-status" id="data-status">
+                <div class="status-icon">ℹ️</div>
+                <div class="status-message">
+                    <strong>Welcome to Trajectory Explorer!</strong><br>
+                    Select an elephant and period to view movement data.
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Controls -->
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3 class="panel-title">Elephant Selection</h3>
+                <div class="elephant-selector">
+                    <button class="elephant-btn active" data-elephant="E1">E1</button>
+                    <button class="elephant-btn" data-elephant="E2">E2</button>
+                    <button class="elephant-btn" data-elephant="E3">E3</button>
+                    <button class="elephant-btn" data-elephant="E4">E4</button>
+                    <button class="elephant-btn" data-elephant="E5">E5</button>
+                    <button class="elephant-btn" data-elephant="E6">E6</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Study Period</h3>
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="pre">
+                        <span class="period-label">Pre</span>
+                        <span class="period-desc">Before Removal</span>
+                    </button>
+                    <button class="period-btn" data-period="interim">
+                        <span class="period-label">Interim</span>
+                        <span class="period-desc">During Removal</span>
+                    </button>
+                    <button class="period-btn" data-period="post">
+                        <span class="period-label">Post</span>
+                        <span class="period-desc">After Removal</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Behavioral Filters</h3>
+                <div class="behavior-filters-grid">
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-behavior="Resting">
+                        <span class="checkbox-custom resting"></span>
+                        <span class="filter-label">Resting</span>
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-behavior="Foraging">
+                        <span class="checkbox-custom foraging"></span>
+                        <span class="filter-label">Foraging</span>
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-behavior="Movement">
+                        <span class="checkbox-custom movement"></span>
+                        <span class="filter-label">Movement</span>
+                    </label>
+                </div>
+            </div>
+
+
+
+            <div class="panel-section">
+                <h3 class="panel-title">Display & Performance</h3>
+                <div class="display-grid">
+                    <label class="toggle-option">
+                        <input type="checkbox" id="show-fence" checked>
+                        <span class="toggle-label">Fence</span>
+                    </label>
+                    <label class="toggle-option">
+                        <input type="checkbox" id="show-trail" checked>
+                        <span class="toggle-label">Trail</span>
+                    </label>
+                    <label class="toggle-option">
+                        <input type="checkbox" id="show-rsf">
+                        <span class="toggle-label">RSF Map</span>
+                    </label>
+                </div>
+                <div style="margin-top: var(--spacing-md);">
+                    <select id="max-points"
+                        style="width: 100%; padding: var(--spacing-sm); background: var(--color-bg-tertiary); color: var(--color-text-primary); border: 1px solid var(--glass-border); border-radius: var(--radius-sm);">
+                        <option value="100">100 (Fast)</option>
+                        <option value="500" selected>500 (Balanced)</option>
+                        <option value="1000">1000 (Detailed)</option>
+                        <option value="all">All Points</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Proj4js for coordinate transformation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/explorer.js"></script>
+</body>
+
+</html>

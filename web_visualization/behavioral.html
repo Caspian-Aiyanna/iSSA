@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Behavioral Analysis | Elephant Movement Analysis</title>
+    <meta name="description" content="Interactive behavioral state analysis for elephants across BACI study periods">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/behavioral.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+                <span class="brand-text">Elephant Movement Analysis</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Overview</a></li>
+                <li><a href="methodology.html" class="nav-link">Methodology</a></li>
+                <li><a href="explorer.html" class="nav-link">Trajectory Explorer</a></li>
+                <li><a href="behavioral.html" class="nav-link active">Behavioral Analysis</a></li>
+                <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="behavioral-container">
+        <!-- Left Panel - Info & Summary -->
+        <div class="info-panel">
+            <div class="panel-section">
+                <h3 class="panel-title">Elephant Profile</h3>
+                <div class="elephant-profile-card" id="elephant-profile">
+                    <div class="profile-image">
+                        <img id="profile-img" src="elephants/Kamva_1.png" alt="Elephant">
+                    </div>
+                    <div class="profile-info">
+                        <h3 id="profile-name">Kamva (E1)</h3>
+                        <div class="profile-badge" id="profile-badge">KW - Pre, Interim</div>
+                    </div>
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <span class="profile-stat-label">Home Range</span>
+                            <span class="profile-stat-value" id="profile-range">Kariega West</span>
+                        </div>
+                        <div class="profile-stat">
+                            <span class="profile-stat-label">Data Points</span>
+                            <span class="profile-stat-value" id="profile-points">-</span>
+                        </div>
+                        <div class="profile-stat">
+                            <span class="profile-stat-label">Selected Period</span>
+                            <span class="profile-stat-value" id="profile-period">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Summary Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Points</div>
+                        <div class="stat-value" id="total-points">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Duration (days)</div>
+                        <div class="stat-value" id="duration-days">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Resting %</div>
+                        <div class="stat-value" id="resting-pct">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Foraging %</div>
+                        <div class="stat-value" id="foraging-pct">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Movement %</div>
+                        <div class="stat-value" id="movement-pct">-</div>
+                    </div>
+                    <div class="stat-item" style="grid-column: span 2;">
+                        <div class="stat-label">Date Range</div>
+                        <div class="stat-value" style="font-size: 0.75rem;" id="date-range">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Study Design Info</h3>
+                <p style="color: var(--color-text-tertiary); font-size: 0.875rem; line-height: 1.6;">
+                    Elephants E1-E4 stayed in Kariega West (KW), while E5-E6 moved from Harvestvale (HV) to the main
+                    study area after fence removal.
+                </p>
+            </div>
+        </div>
+
+        <!-- Center Visualization Area -->
+        <div class="visualization-area">
+            <div class="viz-header">
+                <h2 id="viz-title">Time Budget Analysis</h2>
+                <div class="viz-controls">
+                    <button class="btn-icon" id="download-chart" title="Download Chart">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Time Budget Chart -->
+            <div class="viz-container" id="time-budget-container">
+                <div class="time-budget-layout">
+                    <div class="chart-section" style="width: 100%;">
+                        <canvas id="time-budget-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seasonal Patterns -->
+            <div class="viz-container hidden" id="seasonal-container">
+                <div class="seasonal-controls">
+                    <div class="control-group">
+                        <label>Year:</label>
+                        <select id="year-select" class="seasonal-select">
+                            <option value="all">All Years</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Month:</label>
+                        <select id="month-select" class="seasonal-select">
+                            <option value="all">All Months</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="seasonal-summary" id="seasonal-summary">
+                    <div class="summary-card">
+                        <div class="summary-label">Selected Period</div>
+                        <div class="summary-value" id="seasonal-period-text">All Data</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Observations</div>
+                        <div class="summary-value" id="seasonal-obs">-</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Dominant Behavior</div>
+                        <div class="summary-value" id="seasonal-dominant">-</div>
+                    </div>
+                </div>
+                <canvas id="seasonal-chart"></canvas>
+            </div>
+
+            <!-- Temporal Pattern Chart -->
+            <div class="viz-container hidden" id="temporal-container">
+                <canvas id="temporal-chart"></canvas>
+            </div>
+
+            <!-- Period Comparison Chart -->
+            <div class="viz-container hidden" id="comparison-container">
+                <canvas id="comparison-chart"></canvas>
+            </div>
+
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading behavioral data...</div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Controls -->
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3 class="panel-title">Elephant Selection</h3>
+                <div class="elephant-grid">
+                    <button class="elephant-btn active" data-elephant="E1">E1</button>
+                    <button class="elephant-btn" data-elephant="E2">E2</button>
+                    <button class="elephant-btn" data-elephant="E3">E3</button>
+                    <button class="elephant-btn" data-elephant="E4">E4</button>
+                    <button class="elephant-btn" data-elephant="E5">E5</button>
+                    <button class="elephant-btn" data-elephant="E6">E6</button>
+                    <button class="elephant-btn" data-elephant="ALL">All Elephants</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Study Period</h3>
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="PRE">Pre</button>
+                    <button class="period-btn" data-period="INTERIM">Interim</button>
+                    <button class="period-btn" data-period="POST">Post</button>
+                    <button class="period-btn" data-period="ALL">All</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Analysis Mode</h3>
+                <div class="analysis-selector">
+                    <button class="analysis-btn active" data-analysis="time-budget">Time Budget</button>
+                    <button class="analysis-btn" data-analysis="seasonal">Seasonal Patterns</button>
+                    <button class="analysis-btn" data-analysis="temporal">Temporal Day/Night</button>
+                    <button class="analysis-btn" data-analysis="comparison">BACI Comparison</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Refine View</h3>
+                <select id="global-year-select" class="year-filter-select">
+                    <option value="all">All Available Years</option>
+                </select>
+                <p class="filter-hint">Filters data for the current selection</p>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Instructions</h3>
+                <ul style="color: var(--color-text-tertiary); font-size: 0.8125rem; padding-left: 1.25rem;">
+                    <li style="margin-bottom: 0.5rem;">Select an elephant to view individual behavior profile.</li>
+                    <li style="margin-bottom: 0.5rem;">Switch between PRE/INTERIM/POST to see BACI impacts.</li>
+                    <li style="margin-bottom: 0.5rem;">Use "All Elephants" for aggregate population analysis.</li>
+                    <li style="margin-bottom: 0.5rem;">Download charts for publication-quality visuals.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/behavioral.js"></script>
+</body>
+
+</html>

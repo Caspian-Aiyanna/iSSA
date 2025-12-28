@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Start Guide - Elephant Movement Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            border-radius: 1rem;
+            padding: 3rem;
+            max-width: 800px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 2rem;
+            font-size: 1.125rem;
+        }
+
+        .status {
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status h2 {
+            color: #10b981;
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .status ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .status li {
+            padding: 0.5rem 0;
+            color: #166534;
+        }
+
+        .status li::before {
+            content: "✓ ";
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .next-steps {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .next-steps h2 {
+            color: #f59e0b;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .next-steps ol {
+            padding-left: 1.5rem;
+            color: #78350f;
+        }
+
+        .next-steps li {
+            padding: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            margin-top: 2rem;
+            border-radius: 0.25rem;
+        }
+
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box p {
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            color: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🐘 Quick Start Guide</h1>
+        <p class="subtitle">Elephant Movement & Behavioral Analysis Platform</p>
+
+        <div class="status">
+            <h2>✓ Successfully Created</h2>
+            <ul>
+                <li>Landing page with premium dark mode design</li>
+                <li>Comprehensive CSS design system</li>
+                <li>Core JavaScript functionality</li>
+                <li>Project structure and documentation</li>
+            </ul>
+        </div>
+
+        <div class="next-steps">
+            <h2>📋 Next Steps to Complete the Platform</h2>
+            <ol>
+                <li><strong>Start a local server</strong> to view the landing page:
+                    <br>Run <code>./start-server.ps1</code> or <code>python -m http.server 8000</code>
+                </li>
+                <li><strong>Create the Trajectory Explorer</strong> page with:
+                    <ul style="margin-top: 0.5rem;">
+                        <li>Leaflet.js map initialization</li>
+                        <li>CSV data loading from behavioral_points/</li>
+                        <li>D3.js animated trajectories</li>
+                        <li>Time slider controls</li>
+                    </ul>
+                </li>
+                <li><strong>Create the Behavioral Analysis</strong> page with:
+                    <ul style="margin-top: 0.5rem;">
+                        <li>Multi-elephant comparisons</li>
+                        <li>Time budget visualizations</li>
+                        <li>Statistical charts</li>
+                    </ul>
+                </li>
+                <li><strong>Create the RSF Comparison</strong> page with:
+                    <ul style="margin-top: 0.5rem;">
+                        <li>GeoTIFF loading and rendering</li>
+                        <li>Heatmap overlays</li>
+                        <li>Side-by-side period comparisons</li>
+                    </ul>
+                </li>
+                <li><strong>Create the Methodology</strong> page with:
+                    <ul style="margin-top: 0.5rem;">
+                        <li>HMM/RSF explanations</li>
+                        <li>Data download links</li>
+                        <li>Citation information</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div>
+            <a href="index.html" class="btn">View Landing Page</a>
+            <a href="README.md" class="btn btn-secondary">Read Documentation</a>
+        </div>
+
+        <div class="info-box">
+            <h3>💡 Data Integration</h3>
+            <p>
+                Your elephant behavioral data is located in:<br>
+                <code>../results/RSF/behavioral_points/</code><br><br>
+                RSF rasters are in:<br>
+                <code>../results/RSF/rasters/{period}/</code><br><br>
+                The platform is designed to load this data dynamically using JavaScript fetch API.
+            </p>
+        </div>
+
+        <div class="info-box" style="margin-top: 1rem;">
+            <h3>🎨 Design Features</h3>
+            <p>
+                The platform includes:<br>
+                • Premium dark mode with glassmorphism effects<br>
+                • Smooth animations and transitions<br>
+                • Behavioral color coding (Resting=Blue, Foraging=Green, Movement=Orange)<br>
+                • Responsive design for all screen sizes<br>
+                • Interactive hover states and micro-animations
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

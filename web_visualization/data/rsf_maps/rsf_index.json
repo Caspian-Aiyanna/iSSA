@@ -1,0 +1,614 @@
+{
+  "elephants": [
+    "E1",
+    "E2",
+    "E3",
+    "E4",
+    "E5",
+    "E6"
+  ],
+  "behaviors": [
+    "Resting",
+    "Foraging",
+    "Movement"
+  ],
+  "periods": [
+    "pre",
+    "interim",
+    "post"
+  ],
+  "maps": [
+    {
+      "elephant": "E1",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E1_pre_Foraging_Realized.png",
+      "metadata": "E1_pre_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E1",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E1_pre_Movement_Realized.png",
+      "metadata": "E1_pre_Movement_Realized.json"
+    },
+    {
+      "elephant": "E1",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E1_pre_Resting_Realized.png",
+      "metadata": "E1_pre_Resting_Realized.json"
+    },
+    {
+      "elephant": "E2",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E2_pre_Foraging_Realized.png",
+      "metadata": "E2_pre_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E2",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E2_pre_Movement_Realized.png",
+      "metadata": "E2_pre_Movement_Realized.json"
+    },
+    {
+      "elephant": "E2",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E2_pre_Resting_Realized.png",
+      "metadata": "E2_pre_Resting_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E3_pre_Foraging_Realized.png",
+      "metadata": "E3_pre_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E3_pre_Movement_Realized.png",
+      "metadata": "E3_pre_Movement_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E3_pre_Resting_Realized.png",
+      "metadata": "E3_pre_Resting_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E4_pre_Foraging_Realized.png",
+      "metadata": "E4_pre_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E4_pre_Movement_Realized.png",
+      "metadata": "E4_pre_Movement_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E4_pre_Resting_Realized.png",
+      "metadata": "E4_pre_Resting_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E5_pre_Foraging_Realized.png",
+      "metadata": "E5_pre_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E5_pre_Movement_Realized.png",
+      "metadata": "E5_pre_Movement_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E5_pre_Resting_Realized.png",
+      "metadata": "E5_pre_Resting_Realized.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E6_pre_Foraging_Realized.png",
+      "metadata": "E6_pre_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E6_pre_Movement_Realized.png",
+      "metadata": "E6_pre_Movement_Realized.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E6_pre_Resting_Realized.png",
+      "metadata": "E6_pre_Resting_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E3_pre_Foraging_Usage.png",
+      "metadata": "E3_pre_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E3_pre_Resting_Usage.png",
+      "metadata": "E3_pre_Resting_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E4_pre_Foraging_Usage.png",
+      "metadata": "E4_pre_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Usage",
+      "png": "E4_pre_Movement_Usage.png",
+      "metadata": "E4_pre_Movement_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E4_pre_Resting_Usage.png",
+      "metadata": "E4_pre_Resting_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E5_pre_Foraging_Usage.png",
+      "metadata": "E5_pre_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Usage",
+      "png": "E5_pre_Movement_Usage.png",
+      "metadata": "E5_pre_Movement_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E5_pre_Resting_Usage.png",
+      "metadata": "E5_pre_Resting_Usage.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "pre",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E6_pre_Foraging_Usage.png",
+      "metadata": "E6_pre_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "pre",
+      "behavior": "Movement",
+      "type": "Usage",
+      "png": "E6_pre_Movement_Usage.png",
+      "metadata": "E6_pre_Movement_Usage.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "pre",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E6_pre_Resting_Usage.png",
+      "metadata": "E6_pre_Resting_Usage.json"
+    },
+    {
+      "elephant": "E1",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E1_interim_Foraging_Realized.png",
+      "metadata": "E1_interim_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E1",
+      "period": "interim",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E1_interim_Movement_Realized.png",
+      "metadata": "E1_interim_Movement_Realized.json"
+    },
+    {
+      "elephant": "E1",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E1_interim_Resting_Realized.png",
+      "metadata": "E1_interim_Resting_Realized.json"
+    },
+    {
+      "elephant": "E2",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E2_interim_Foraging_Realized.png",
+      "metadata": "E2_interim_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E2",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E2_interim_Resting_Realized.png",
+      "metadata": "E2_interim_Resting_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E3_interim_Foraging_Realized.png",
+      "metadata": "E3_interim_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "interim",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E3_interim_Movement_Realized.png",
+      "metadata": "E3_interim_Movement_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E3_interim_Resting_Realized.png",
+      "metadata": "E3_interim_Resting_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E4_interim_Foraging_Realized.png",
+      "metadata": "E4_interim_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "interim",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E4_interim_Movement_Realized.png",
+      "metadata": "E4_interim_Movement_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E4_interim_Resting_Realized.png",
+      "metadata": "E4_interim_Resting_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E5_interim_Foraging_Realized.png",
+      "metadata": "E5_interim_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "interim",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E5_interim_Movement_Realized.png",
+      "metadata": "E5_interim_Movement_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E5_interim_Resting_Realized.png",
+      "metadata": "E5_interim_Resting_Realized.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E6_interim_Foraging_Realized.png",
+      "metadata": "E6_interim_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "interim",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E6_interim_Movement_Realized.png",
+      "metadata": "E6_interim_Movement_Realized.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E6_interim_Resting_Realized.png",
+      "metadata": "E6_interim_Resting_Realized.json"
+    },
+    {
+      "elephant": "E1",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E1_interim_Foraging_Usage.png",
+      "metadata": "E1_interim_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E1",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E1_interim_Resting_Usage.png",
+      "metadata": "E1_interim_Resting_Usage.json"
+    },
+    {
+      "elephant": "E2",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E2_interim_Resting_Usage.png",
+      "metadata": "E2_interim_Resting_Usage.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E3_interim_Foraging_Usage.png",
+      "metadata": "E3_interim_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E3_interim_Resting_Usage.png",
+      "metadata": "E3_interim_Resting_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E4_interim_Foraging_Usage.png",
+      "metadata": "E4_interim_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E4_interim_Resting_Usage.png",
+      "metadata": "E4_interim_Resting_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "interim",
+      "behavior": "Movement",
+      "type": "Usage",
+      "png": "E5_interim_Movement_Usage.png",
+      "metadata": "E5_interim_Movement_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E5_interim_Resting_Usage.png",
+      "metadata": "E5_interim_Resting_Usage.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "interim",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E6_interim_Foraging_Usage.png",
+      "metadata": "E6_interim_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E6",
+      "period": "interim",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E6_interim_Resting_Usage.png",
+      "metadata": "E6_interim_Resting_Usage.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "post",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E3_post_Foraging_Realized.png",
+      "metadata": "E3_post_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "post",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E3_post_Movement_Realized.png",
+      "metadata": "E3_post_Movement_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "post",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E3_post_Resting_Realized.png",
+      "metadata": "E3_post_Resting_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "post",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E4_post_Foraging_Realized.png",
+      "metadata": "E4_post_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "post",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E4_post_Movement_Realized.png",
+      "metadata": "E4_post_Movement_Realized.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "post",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E4_post_Resting_Realized.png",
+      "metadata": "E4_post_Resting_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "post",
+      "behavior": "Foraging",
+      "type": "Realized",
+      "png": "E5_post_Foraging_Realized.png",
+      "metadata": "E5_post_Foraging_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "post",
+      "behavior": "Movement",
+      "type": "Realized",
+      "png": "E5_post_Movement_Realized.png",
+      "metadata": "E5_post_Movement_Realized.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "post",
+      "behavior": "Resting",
+      "type": "Realized",
+      "png": "E5_post_Resting_Realized.png",
+      "metadata": "E5_post_Resting_Realized.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "post",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E3_post_Foraging_Usage.png",
+      "metadata": "E3_post_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E3",
+      "period": "post",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E3_post_Resting_Usage.png",
+      "metadata": "E3_post_Resting_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "post",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E4_post_Foraging_Usage.png",
+      "metadata": "E4_post_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "post",
+      "behavior": "Movement",
+      "type": "Usage",
+      "png": "E4_post_Movement_Usage.png",
+      "metadata": "E4_post_Movement_Usage.json"
+    },
+    {
+      "elephant": "E4",
+      "period": "post",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E4_post_Resting_Usage.png",
+      "metadata": "E4_post_Resting_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "post",
+      "behavior": "Foraging",
+      "type": "Usage",
+      "png": "E5_post_Foraging_Usage.png",
+      "metadata": "E5_post_Foraging_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "post",
+      "behavior": "Movement",
+      "type": "Usage",
+      "png": "E5_post_Movement_Usage.png",
+      "metadata": "E5_post_Movement_Usage.json"
+    },
+    {
+      "elephant": "E5",
+      "period": "post",
+      "behavior": "Resting",
+      "type": "Usage",
+      "png": "E5_post_Resting_Usage.png",
+      "metadata": "E5_post_Resting_Usage.json"
+    }
+  ]
+}
