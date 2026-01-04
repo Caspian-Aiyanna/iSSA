@@ -169,6 +169,9 @@ function initializeEventListeners() {
         leftMap.setView(center, zoom);
         rightMap.setView(center, zoom);
     });
+
+    // GIS Map Download
+    document.getElementById('download-gis-map').addEventListener('click', exportGISMap);
 }
 
 // ============================================================================
@@ -189,12 +192,14 @@ function initializeMaps() {
     // Define base layers
     const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
+        maxZoom: 18,
+        crossOrigin: true
     });
 
     const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: '© Esri',
-        maxZoom: 18
+        maxZoom: 18,
+        crossOrigin: true
     });
 
     const baseMaps = {
@@ -208,22 +213,26 @@ function initializeMaps() {
 
     const streetMap2 = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
+        maxZoom: 18,
+        crossOrigin: true
     });
     const satellite2 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: '© Esri',
-        maxZoom: 18
+        maxZoom: 18,
+        crossOrigin: true
     });
     satellite2.addTo(leftMap);
     L.control.layers({ "Street Map": streetMap2, "Satellite": satellite2 }).addTo(leftMap);
 
     const streetMap3 = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
+        maxZoom: 18,
+        crossOrigin: true
     });
     const satellite3 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: '© Esri',
-        maxZoom: 18
+        maxZoom: 18,
+        crossOrigin: true
     });
     satellite3.addTo(rightMap);
     L.control.layers({ "Street Map": streetMap3, "Satellite": satellite3 }).addTo(rightMap);
@@ -242,9 +251,13 @@ function initializeMaps() {
         }
     });
 
-    // Ensure proj4 is globally available for georaster projection
+    // Ensure proj4 is globally available and define local South African UTM Zone
     if (typeof proj4 !== 'undefined') {
         window.proj4 = proj4;
+        // Define UTM Zone 35S (Primary CRS for Kariega/Eastern Cape at 26.5E)
+        proj4.defs("EPSG:32735", "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs");
+        // Define UTM Zone 36S just in case for surrounding areas
+        proj4.defs("EPSG:32736", "+proj=utm +zone=36 +south +datum=WGS84 +units=m +no_defs");
     }
 
     // Sync map views
@@ -374,115 +387,80 @@ async function loadRasterLayer(elephant, period, behavior, type, map) {
     try {
         const rasterPath = getRasterPath(elephant, period, behavior, type);
 
-        // Fetch the GeoTIFF file
         const response = await fetch(rasterPath);
         if (!response.ok) {
             throw new Error(`Failed to load raster: ${response.status} ${response.statusText}`);
         }
 
         const arrayBuffer = await response.arrayBuffer();
-
-        // Parse GeoTIFF
         const georaster = await parseGeoraster(arrayBuffer);
 
-        console.log(`[GeoRaster] Loaded: ${georaster.width}x${georaster.height}, Range: ${georaster.mins[0]} - ${georaster.maxs[0]}`);
-        console.log(`[GeoRaster] Bounds: [${georaster.ymin}, ${georaster.xmin}] to [${georaster.ymax}, ${georaster.xmax}]`);
-        console.log(`[GeoRaster] NoData Value: ${georaster.noDataValue}`);
-        console.log(`[GeoRaster] Projection: ${georaster.projection}`);
-        console.log(`[GeoRaster] EPSG Code: ${georaster.epsg || 'Not specified'}`);
-
-        // Check if projection is UTM (EPSG:32736) - common for South African data
-        const proj = georaster.projection ? String(georaster.projection) : "";
-        if (proj.includes('32736')) {
-            console.warn('[GeoRaster] Raster is in UTM Zone 36S (EPSG:32736) - will be reprojected to WGS84 for display');
+        // SPATIAL ALIGNMENT: Enforce UTM Zone 35S (EPSG:32735) for Kariega study area
+        const isProjected = Math.abs(georaster.xmin) > 1000 || Math.abs(georaster.ymin) > 1000;
+        if (isProjected) {
+            georaster.projection = 32735;
+            georaster.crs = "EPSG:32735";
         }
 
-        // Create dynamic heatmap color scale (optimized for visibility on satellite)
         const layer = new GeoRasterLayer({
             georaster: georaster,
-            pane: 'rasterPane', // Explicitly use our high-z-index pane
-            opacity: 0.95,  // High base opacity for better visibility
+            pane: 'rasterPane',
+            opacity: 0.95,
             pixelValuesToColorFn: function (values) {
                 const value = values[0];
-
-                // Handle no-data values
-                if (value === null ||
-                    value === undefined ||
-                    value === georaster.noDataValue ||
-                    isNaN(value)) {
+                if (value === null || value === undefined || value === georaster.noDataValue || isNaN(value)) {
                     return null;
                 }
 
-                // Normalization
                 const min = georaster.mins[0];
                 const max = georaster.maxs[0];
                 const normalized = (max === min) ? 0.5 : (value - min) / (max - min);
 
-                // High-visibility palette (optimized for satellite maps):
-                // Deep Purple/Vibrant Blue (Low) -> Cyan -> Green -> Yellow -> Orange -> Red (High)
                 let r, g, b;
-
                 if (normalized < 0.2) {
-                    // Deep Purple -> Blue
                     const t = normalized / 0.2;
-                    r = Math.floor(t * 100);
-                    g = Math.floor(t * 100);
-                    b = 255;
+                    r = Math.floor(t * 100); g = Math.floor(t * 100); b = 255;
                 } else if (normalized < 0.4) {
-                    // Blue -> Cyan
                     const t = (normalized - 0.2) / 0.2;
-                    r = 100 + Math.floor(t * 50);
-                    g = 100 + Math.floor(t * 155);
-                    b = 255;
+                    r = 100 + Math.floor(t * 50); g = 100 + Math.floor(t * 155); b = 255;
                 } else if (normalized < 0.6) {
-                    // Cyan -> Green
                     const t = (normalized - 0.4) / 0.2;
-                    r = 150 - Math.floor(t * 150);
-                    g = 255;
-                    b = 255 - Math.floor(t * 255);
+                    r = 150 - Math.floor(t * 150); g = 255; b = 255 - Math.floor(t * 255);
                 } else if (normalized < 0.8) {
-                    // Green -> Yellow
                     const t = (normalized - 0.6) / 0.2;
-                    r = Math.floor(t * 255);
-                    g = 255;
-                    b = 0;
+                    r = Math.floor(t * 255); g = 255; b = 0;
                 } else {
-                    // Yellow -> Red
                     const t = (normalized - 0.8) / 0.2;
-                    r = 255;
-                    g = 255 - Math.floor(t * 255);
-                    b = 0;
+                    r = 255; g = 255 - Math.floor(t * 255); b = 0;
                 }
-
-                return `rgba(${r}, ${g}, ${b}, 1.0)`; // Solid alpha, managed by layer opacity
+                return `rgba(${r}, ${g}, ${b}, 1.0)`;
             },
-            resolution: 512, // Increased resolution for sharper display
+            resolution: 512, // High resolution for publication quality
             pixelValuesToColorFn_noDataValue: georaster.noDataValue,
-            // Ensure exact bounds - no extrapolation
-            bounds: [[georaster.ymin, georaster.xmin], [georaster.ymax, georaster.xmax]]
+            // DO NOT pass manual 'bounds' here - let the engine reproject correctly from projection metadata
         });
 
         layer.addTo(map);
 
-        // Fit map to EXACT raster bounds (not shapefile bounds)
-        const bounds = [
-            [georaster.ymin, georaster.xmin],
-            [georaster.ymax, georaster.xmax]
-        ];
-        map.fitBounds(bounds, { padding: [20, 20] });
-
-        // Fixate map to the extent of the raster to prevent shifting
-        map.setMaxBounds(bounds);
-        map.setMinZoom(map.getZoom() - 2); // Allow some zooming out but not too much
+        // Precision fit after a short delay for projection logic
+        setTimeout(() => {
+            try {
+                const bounds = layer.getBounds();
+                if (bounds && bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [15, 15] });
+                }
+            } catch (e) {
+                console.warn('[Spatial Sync] Viewing extent adjustment failed');
+            }
+        }, 200);
 
         return layer;
-
     } catch (error) {
         console.error(`Error loading raster layer:`, error);
-        alert(`Failed to load raster for ${elephant} ${period} ${behavior}. Check console for details.`);
         return null;
     }
 }
+
 
 // ============================================================================
 // VISUALIZATION UPDATES
@@ -684,4 +662,164 @@ function showLoading(show) {
         overlay.style.opacity = '0';
         overlay.style.pointerEvents = 'none';
     }
+}
+// ============================================================================
+// GIS EXPORT SYSTEM
+// ============================================================================
+
+async function exportGISMap() {
+    showLoading(true);
+
+    // 1. Clean up UI for export
+    const controls = document.querySelectorAll('.leaflet-control-container');
+    controls.forEach(c => c.style.display = 'none');
+
+    // Small delay to ensure any layout shifts or tile loads settle
+    await new Promise(r => setTimeout(r, 600));
+
+    try {
+        const mapContainerId = comparisonMode === 'single' ? 'single-map' : 'left-map';
+        const mapElement = document.getElementById(mapContainerId);
+
+        // Capture with high scale for GIS clarity
+        const canvas = await html2canvas(mapElement, {
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#0a0e1a',
+            scale: 2,
+            logging: false
+        });
+
+        // Restore UI
+        controls.forEach(c => c.style.display = '');
+
+        const dateStr = new Date().toLocaleDateString();
+        const elephantName = document.getElementById('elephant-name').textContent;
+        const behaviorName = currentBehavior;
+        const periodName = currentPeriod.toUpperCase();
+
+        const gisCanvas = document.createElement('canvas');
+        const gisCtx = gisCanvas.getContext('2d');
+        gisCanvas.width = 1200;
+        gisCanvas.height = 1600;
+
+        // Background
+        gisCtx.fillStyle = '#111827';
+        gisCtx.fillRect(0, 0, gisCanvas.width, gisCanvas.height);
+
+        // 2. Aspect Ratio Correction
+        const sourceAspect = canvas.width / canvas.height;
+        const mapY = 150;
+        const mapWidth = gisCanvas.width - 80;
+        let mapHeight = mapWidth / sourceAspect;
+
+        // Prevent overflow
+        if (mapHeight > 1150) mapHeight = 1150;
+
+        // Draw Map
+        gisCtx.drawImage(canvas, 40, mapY, mapWidth, mapHeight);
+
+        // Header
+        gisCtx.fillStyle = '#ffffff';
+        gisCtx.font = 'bold 36px Inter, sans-serif';
+        gisCtx.fillText('Elephant Habitat Selection Analysis', 40, 60);
+
+        gisCtx.font = '24px Inter, sans-serif';
+        gisCtx.fillStyle = '#94a3b8';
+        gisCtx.fillText(`${elephantName} | ${behaviorName} | BACI: ${periodName}`, 40, 100);
+
+        // 3. Dynamic Elements Positioning
+        drawNorthArrow(gisCtx, gisCanvas.width - 100, mapY + 60);
+        drawScaleBar(gisCtx, 80, mapY + mapHeight - 30);
+
+        const legendY = mapY + mapHeight + 60;
+        drawGISLegend(gisCtx, 40, legendY);
+
+        // Footer
+        gisCtx.fillStyle = '#475569';
+        gisCtx.font = '16px Inter, sans-serif';
+        gisCtx.fillText(`Source: Kariega Elephant Study | Exported: ${dateStr}`, 40, 1550);
+        gisCtx.fillText('Coordinate System: WGS 84 / Web Mercator', 40, 1575);
+
+        const link = document.createElement('a');
+        link.download = `GIS_Map_${currentElephant}_${currentPeriod}_${behaviorName}.png`;
+        link.href = gisCanvas.toDataURL('image/png', 1.0);
+        link.click();
+
+        showLoading(false);
+    } catch (error) {
+        console.error('GIS Export Error:', error);
+        controls.forEach(c => c.style.display = '');
+        alert('Failed to generate GIS map.');
+        showLoading(false);
+    }
+}
+
+function drawNorthArrow(ctx, x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+
+    // Draw N
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px serif';
+    ctx.fillText('N', -10, -40);
+
+    // Draw Arrow
+    ctx.beginPath();
+    ctx.moveTo(0, -30);
+    ctx.lineTo(15, 20);
+    ctx.lineTo(0, 5);
+    ctx.lineTo(-15, 20);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawScaleBar(ctx, x, y) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '18px sans-serif';
+
+    const barWidth = 200;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y + 10);
+    ctx.lineTo(x + barWidth, y + 10);
+    ctx.lineTo(x + barWidth, y);
+    ctx.stroke();
+
+    ctx.fillText('0', x - 5, y + 35);
+    ctx.fillText('1 km', x + barWidth - 20, y + 35);
+}
+
+function drawGISLegend(ctx, x, y) {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText('Selection Intensity', x, y);
+
+    const gradWidth = 400;
+    const gradHeight = 30;
+    const gradY = y + 20;
+
+    // Create gradient
+    const grad = ctx.createLinearGradient(x, 0, x + gradWidth, 0);
+    // Custom visible palette
+    grad.addColorStop(0.0, 'rgba(100, 100, 255, 1)');
+    grad.addColorStop(0.5, 'rgba(0, 255, 0, 1)');
+    grad.addColorStop(1.0, 'rgba(255, 0, 0, 1)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, gradY, gradWidth, gradHeight);
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.strokeRect(x, gradY, gradWidth, gradHeight);
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '16px sans-serif';
+    ctx.fillText('Low (Avoidance)', x, gradY + 50);
+    ctx.fillText('High (Selection)', x + gradWidth - 110, gradY + 50);
 }

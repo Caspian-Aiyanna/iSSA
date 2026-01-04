@@ -651,12 +651,38 @@
 @media (max-width: 768px) {
     .explorer-container {
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto 1fr auto;
+        height: auto;
+        min-height: calc(100vh - 64px);
+        margin-top: 64px;
     }
 
     .control-panel {
         border-right: none;
         border-bottom: 1px solid var(--glass-border);
-        max-height: 40vh;
+        max-height: 45vh;
+        z-index: 100;
+    }
+
+    .map-container {
+        height: 50vh;
+        order: 2;
+    }
+
+    .timeline-controls {
+        position: relative;
+        bottom: 0;
+        padding: var(--spacing-md);
+        background: var(--color-bg-secondary);
+        order: 3;
+    }
+
+    .playback-controls .control-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .elephant-selector {
+        grid-template-columns: repeat(2, 1fr);
     }
 }

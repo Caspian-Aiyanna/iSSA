@@ -195,12 +195,12 @@ window.elephantPlatform = {
 
     // Elephant metadata
     elephants: {
-        'E1': { name: 'Elephant E1', periods: ['pre'], hasPost: false },
-        'E2': { name: 'Elephant E2', periods: ['pre'], hasPost: false },
-        'E3': { name: 'Elephant E3', periods: ['pre', 'interim', 'post'], hasPost: true },
-        'E4': { name: 'Elephant E4', periods: ['pre', 'interim', 'post'], hasPost: true },
-        'E5': { name: 'Elephant E5', periods: ['pre', 'interim', 'post'], hasPost: true },
-        'E6': { name: 'Elephant E6', periods: ['pre'], hasPost: false }
+        'E1': { name: 'Kamva', periods: ['pre'], hasPost: false },
+        'E2': { name: 'Kambaku', periods: ['pre'], hasPost: false },
+        'E3': { name: 'Bukela', periods: ['pre', 'interim', 'post'], hasPost: true },
+        'E4': { name: 'Half Moon', periods: ['pre', 'interim', 'post'], hasPost: true },
+        'E5': { name: 'Beauty', periods: ['pre', 'interim', 'post'], hasPost: true },
+        'E6': { name: 'Balu', periods: ['pre'], hasPost: false }
     },
 
     // Period metadata

@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/rsf-comparison.css">
+    <!-- Spatial Capture Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -101,6 +103,14 @@
                             <path d="M3 21v-5h5" />
                         </svg>
                     </button>
+                    <button class="btn-icon" id="download-gis-map" title="Download GIS Map">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -150,12 +160,12 @@
             <div class="panel-section">
                 <h3 class="panel-title">Elephant Selection</h3>
                 <div class="elephant-grid">
-                    <button class="elephant-btn" data-elephant="E1">E1</button>
-                    <button class="elephant-btn" data-elephant="E2">E2</button>
-                    <button class="elephant-btn active" data-elephant="E3">E3</button>
-                    <button class="elephant-btn" data-elephant="E4">E4</button>
-                    <button class="elephant-btn" data-elephant="E5">E5</button>
-                    <button class="elephant-btn" data-elephant="E6">E6</button>
+                    <button class="elephant-btn male" data-elephant="E1">Kamva</button>
+                    <button class="elephant-btn male" data-elephant="E2">Kambaku</button>
+                    <button class="elephant-btn active female" data-elephant="E3">Bukela</button>
+                    <button class="elephant-btn female" data-elephant="E4">Half Moon</button>
+                    <button class="elephant-btn female" data-elephant="E5">Beauty</button>
+                    <button class="elephant-btn male" data-elephant="E6">Balu</button>
                 </div>
             </div>
 

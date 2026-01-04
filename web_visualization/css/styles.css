@@ -178,24 +178,164 @@ body {
     overflow: hidden;
 }
 
-.hero-background {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.1) 0%, transparent 40%),
-        radial-gradient(circle at 20% 80%, rgba(79, 172, 254, 0.1) 0%, transparent 40%);
-    animation: pulse 8s ease-in-out infinite;
-}
-
 @keyframes pulse {
 
     0%,
     100% {
-        opacity: 0.5;
+        opacity: 0.4;
+        transform: scale(1);
     }
 
     50% {
-        opacity: 0.8;
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.hero-background {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(102, 126, 234, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(118, 75, 162, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(79, 172, 254, 0.08) 0%, transparent 60%);
+    filter: blur(60px);
+    animation: pulse 12s ease-in-out infinite;
+    z-index: 0;
+}
+
+/* Floating Particles */
+.floating-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.particle {
+    position: absolute;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    opacity: 0.2;
+    filter: blur(2px);
+    animation: float-around var(--duration) ease-in-out infinite;
+    animation-delay: var(--delay);
+}
+
+@keyframes float-around {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    33% {
+        transform: translate(30px, -50px) rotate(120deg);
+    }
+
+    66% {
+        transform: translate(-20px, 20px) rotate(240deg);
+    }
+}
+
+/* Scroll Indicator */
+.scroll-indicator {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--color-text-tertiary);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    z-index: 10;
+    opacity: 0.4;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-indicator:hover {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+    color: var(--color-text-primary);
+}
+
+.mouse {
+    width: 24px;
+    height: 38px;
+    border: 2px solid var(--glass-border);
+    border-radius: 12px;
+    position: relative;
+}
+
+.wheel {
+    width: 3px;
+    height: 6px;
+    background: var(--gradient-primary);
+    border-radius: 2px;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: scroll-wheel 2s ease-in-out infinite;
+}
+
+@keyframes scroll-wheel {
+    0% {
+        transform: translate(-50%, 0);
+        opacity: 0;
+    }
+
+    30% {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, 14px);
+        opacity: 0;
+    }
+}
+
+.arrows {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: -4px;
+}
+
+.arrows span {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-bottom: 2px solid var(--glass-border);
+    border-right: 2px solid var(--glass-border);
+    transform: rotate(45deg);
+    margin: -3px;
+    animation: arrow-down 2s infinite;
+}
+
+.arrows span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+@keyframes arrow-down {
+    0% {
+        opacity: 0;
+        transform: rotate(45deg) translate(-5px, -5px);
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: rotate(45deg) translate(5px, 5px);
     }
 }
 
@@ -359,14 +499,28 @@ body {
 }
 
 .section-title {
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(2.5rem, 6vw, 3.5rem);
     font-weight: 800;
     text-align: center;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    position: relative;
+    padding-bottom: var(--spacing-md);
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: var(--gradient-primary);
+    border-radius: 2px;
 }
 
 .section-subtitle {
@@ -397,9 +551,10 @@ body {
 }
 
 .overview-card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-2xl);
-    border-color: rgba(102, 126, 234, 0.3);
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(102, 126, 234, 0.4);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .card-icon {
@@ -898,7 +1053,22 @@ body {
    =================================== */
 @media (max-width: 768px) {
     .nav-menu {
-        display: none;
+        gap: var(--spacing-xs);
+        overflow-x: auto;
+        padding-bottom: var(--spacing-xs);
+        width: 100%;
+        justify-content: center;
+    }
+
+    .nav-link {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+
+    .nav-container {
+        flex-direction: column;
+        gap: var(--spacing-sm);
     }
 
     .hero {
@@ -919,6 +1089,24 @@ body {
     .features-grid,
     .elephant-grid {
         grid-template-columns: 1fr;
+    }
+
+    .elephant-profile-overview {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xl);
+    }
+
+    .study-area-column {
+        order: -1;
+        padding: var(--spacing-xl);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .hero-title {
+        font-size: clamp(2rem, 10vw, 3rem);
     }
 }
 
@@ -967,4 +1155,119 @@ body {
 
 .mb-xl {
     margin-bottom: var(--spacing-xl);
+}
+
+/* ===================================
+   ELEPHANT GENDER STYLES
+   =================================== */
+/* Males (Red) - E1, E2, E6 */
+.elephant-btn.male {
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+}
+
+.elephant-btn.male:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.6) !important;
+    color: #fee2e2 !important;
+}
+
+.elephant-btn.male.active {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+    border-color: transparent !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+.elephant-card.male {
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.elephant-card.male:hover {
+    border-color: rgba(239, 68, 68, 0.6) !important;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Females (Yellow) - E3, E4, E5 */
+.elephant-btn.female {
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #fcd34d !important;
+}
+
+.female-btn.female:hover,
+.elephant-btn.female:hover {
+    background: rgba(245, 158, 11, 0.1) !important;
+    border-color: rgba(245, 158, 11, 0.6) !important;
+    color: #fef3c7 !important;
+}
+
+.elephant-btn.female.active {
+    background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%) !important;
+    border-color: transparent !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4) !important;
+}
+
+.elephant-card.female {
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.elephant-card.female:hover {
+    border-color: rgba(245, 158, 11, 0.6) !important;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Custom Scrollbar - Antigravity Style */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(var(--color-accent-primary), var(--color-accent-secondary));
+    border-radius: 5px;
+    border: 3px solid var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gradient-primary);
+}
+
+/* Shine Hover Animation */
+.stat-card,
+.overview-card,
+.finding-card,
+.feature-card,
+.elephant-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before,
+.overview-card::before,
+.feature-card::before,
+.elephant-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.08),
+            transparent);
+    transition: 0.6s;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.stat-card:hover::before,
+.overview-card:hover::before,
+.feature-card:hover::before,
+.elephant-card:hover::before {
+    left: 150%;
 }

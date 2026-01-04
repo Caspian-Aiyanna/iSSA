@@ -231,14 +231,22 @@ function filterDataByPeriod() {
         // Convert from UTM to WGS84 [longitude, latitude]
         const [lng, lat] = proj4('EPSG:32735', 'EPSG:4326', [utmEasting, utmNorthing]);
 
+        // Parse date properly for sorting
+        // Format in CSV: 2022-08-08T00:05:00Z (UTC)
+        const dateTime = new Date(row.date);
+
         return {
             lat: lat,
             lng: lng,
             behavior: row.behavior || 'Unknown',
-            time: String(row.date || ''),
+            time: row.date,
+            timestamp: !isNaN(dateTime) ? dateTime.getTime() : 0,
             zone: row.Zone || ''
         };
     }).filter(point => !isNaN(point.lat) && !isNaN(point.lng));
+
+    // CRITICAL: Sort by timestamp to ensure chronological order regardless of CSV row order
+    trajectoryData.sort((a, b) => a.timestamp - b.timestamp);
 
     console.log(`Processed ${trajectoryData.length} valid points`);
 
@@ -254,7 +262,7 @@ function filterDataByPeriod() {
     showDataStatus('success',
         `<strong>Data Loaded Successfully!</strong><br>` +
         `${trajectoryData.length} points for ${currentElephant} (${currentPeriod.toUpperCase()} period)<br>` +
-        `<small>Date range: ${trajectoryData[0].time} to ${trajectoryData[trajectoryData.length - 1].time}</small>`
+        `<small>Date range: ${new Date(trajectoryData[0].timestamp).toLocaleDateString()} to ${new Date(trajectoryData[trajectoryData.length - 1].timestamp).toLocaleDateString()}</small>`
     );
 }
 
@@ -293,8 +301,11 @@ function renderTrajectory() {
         }).addTo(map);
     }
 
-    // Add colored markers for each point (sample if too many)
-    const markerStep = Math.max(1, Math.floor(filteredData.length / 200));
+    // Add colored markers for each point
+    // We adjust sampling based on settings - if 'all' is selected, we show ALL points to preserve sharp angles
+    const maxPointsSetting = document.getElementById('max-points').value;
+    const markerStep = maxPointsSetting === 'all' ? 1 : Math.max(1, Math.floor(filteredData.length / 500));
+
     filteredData.forEach((point, index) => {
         if (index % markerStep !== 0) return;
 
@@ -308,9 +319,16 @@ function renderTrajectory() {
             fillOpacity: 0.7
         });
 
+        // Format time in South African Standard Time (GMT+2)
+        const sastTime = new Date(point.timestamp).toLocaleString('en-ZA', {
+            timeZone: 'Africa/Johannesburg',
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        });
+
         marker.bindPopup(`
             <strong>${point.behavior}</strong><br>
-            Time: ${point.time}<br>
+            Time (SAST): ${sastTime}<br>
             Zone: ${point.zone}<br>
             Lat: ${point.lat.toFixed(6)}<br>
             Lng: ${point.lng.toFixed(6)}
@@ -358,14 +376,21 @@ function updateStatistics() {
     const foragingPct = Math.round((counts.Foraging / total) * 100);
     const movementPct = 100 - restingPct - foragingPct;
 
-    // Update UI
+    // Display statistics
     document.getElementById('total-points').textContent = trajectoryData.length.toLocaleString();
 
-    // Format date range safely
-    const firstDate = String(trajectoryData[0].time).split('T')[0];
-    const lastDate = String(trajectoryData[trajectoryData.length - 1].time).split('T')[0];
-    const dateRange = `${firstDate} to ${lastDate}`;
-    document.getElementById('date-range').textContent = dateRange;
+    // Format date range safely in SAST
+    if (trajectoryData.length > 0) {
+        const first = new Date(trajectoryData[0].timestamp);
+        const last = new Date(trajectoryData[trajectoryData.length - 1].timestamp);
+
+        const formatDate = (date) => date.toLocaleDateString('en-ZA', {
+            timeZone: 'Africa/Johannesburg'
+        });
+
+        const dateRange = `${formatDate(first)} to ${formatDate(last)}`;
+        document.getElementById('date-range').textContent = dateRange;
+    }
 
     document.getElementById('resting-pct').textContent = `${restingPct}%`;
     document.getElementById('foraging-pct').textContent = `${foragingPct}%`;
@@ -428,6 +453,29 @@ function initializeControls() {
     document.getElementById('play-btn').addEventListener('click', startAnimation);
     document.getElementById('pause-btn').addEventListener('click', pauseAnimation);
     document.getElementById('reset-btn').addEventListener('click', resetAnimation);
+
+    // Step-by-step navigation
+    document.getElementById('prev-btn').addEventListener('click', () => {
+        if (!trajectoryData || trajectoryData.length === 0) return;
+        pauseAnimation();
+        if (currentIndex > 0) {
+            currentIndex--;
+            const progress = (currentIndex / (trajectoryData.length - 1)) * 100;
+            document.getElementById('time-slider').value = progress;
+            updateCurrentPosition();
+        }
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+        if (!trajectoryData || trajectoryData.length === 0) return;
+        pauseAnimation();
+        if (currentIndex < trajectoryData.length - 1) {
+            currentIndex++;
+            const progress = (currentIndex / (trajectoryData.length - 1)) * 100;
+            document.getElementById('time-slider').value = progress;
+            updateCurrentPosition();
+        }
+    });
 
     // Speed control
     document.getElementById('speed-select').addEventListener('change', (e) => {
@@ -564,10 +612,6 @@ function updateCurrentPosition() {
 
     const point = trajectoryData[currentIndex];
 
-    // Update time display
-    document.getElementById('current-time').textContent = point.time;
-    document.getElementById('current-behavior').textContent = point.behavior;
-
     // Remove old marker
     if (currentMarker) {
         map.removeLayer(currentMarker);
@@ -583,8 +627,22 @@ function updateCurrentPosition() {
         fillOpacity: 0.9
     }).addTo(map);
 
-    // Pan to current position
-    map.panTo([point.lat, point.lng]);
+    // Update tooltip info with SAST
+    const currentSast = new Date(point.timestamp).toLocaleString('en-ZA', {
+        timeZone: 'Africa/Johannesburg',
+        timeStyle: 'medium'
+    });
+
+    currentMarker.bindTooltip(`
+        <strong>${point.behavior}</strong><br>
+        Time (SAST): ${currentSast}
+    `, { permanent: false, direction: 'top' }).openTooltip();
+
+    // Update center display
+    document.getElementById('current-time').textContent = currentSast;
+
+    // Smoothly pan to current position
+    map.panTo([point.lat, point.lng], { animate: true });
 }
 
 // ===================================

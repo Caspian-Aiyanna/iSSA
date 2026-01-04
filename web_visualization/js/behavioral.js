@@ -995,34 +995,53 @@ async function renderPeriodComparison() {
 
 // Download current chart
 function downloadCurrentChart() {
-    let canvas;
+    const originalCanvas = document.querySelector('.viz-container:not(.hidden) canvas');
+    if (!originalCanvas) {
+        console.error('No visible canvas found to download');
+        return;
+    }
+
+    const dateStr = new Date().toISOString().split('T')[0];
     let filename;
 
     switch (currentAnalysis) {
         case 'time-budget':
-            canvas = document.getElementById('time-budget-chart');
-            filename = `time_budget_${currentElephant}_${currentPeriod}.png`;
+            filename = `time_budget_${currentElephant}_${currentPeriod}_${dateStr}.png`;
+            break;
+        case 'seasonal':
+            filename = `seasonal_pattern_${currentElephant}_${currentPeriod}_${dateStr}.png`;
             break;
         case 'temporal':
-            canvas = document.getElementById('temporal-chart');
-            filename = `temporal_pattern_${currentElephant}_${currentPeriod}.png`;
+            filename = `temporal_activity_${currentElephant}_${currentPeriod}_${dateStr}.png`;
             break;
         case 'comparison':
-            canvas = document.getElementById('comparison-chart');
-            filename = `period_comparison_${currentElephant}.png`;
+            filename = `period_comparison_${currentElephant}_${dateStr}.png`;
             break;
         default:
-            alert('Download not available for this visualization type');
-            return;
+            filename = `elephant_chart_${dateStr}.png`;
     }
 
-    if (canvas) {
-        const url = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = url;
-        link.click();
-    }
+    // Create a temporary canvas to add the background
+    const tempCanvas = document.createElement('canvas');
+    const ctx = tempCanvas.getContext('2d');
+
+    // Match dimensions
+    tempCanvas.width = originalCanvas.width;
+    tempCanvas.height = originalCanvas.height;
+
+    // Fill with the dark theme background color (#111827)
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+    // Draw the original chart on top
+    ctx.drawImage(originalCanvas, 0, 0);
+
+    // Download the result
+    const url = tempCanvas.toDataURL('image/png', 1.0);
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    link.click();
 }
 
 // Show/hide loading overlay
