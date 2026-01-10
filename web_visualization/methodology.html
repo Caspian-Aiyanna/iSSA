@@ -24,6 +24,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Overview</a></li>
                 <li><a href="methodology.html" class="nav-link active">Methodology</a></li>
+                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="explorer.html" class="nav-link">Trajectory Explorer</a></li>
                 <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
                 <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
@@ -37,39 +38,57 @@
 
             <div class="overview-grid" style="margin-bottom: var(--spacing-3xl);">
                 <div class="overview-card">
-                    <h3>Hidden Markov Models (HMM)</h3>
+                    <div class="card-icon" style="margin-bottom: var(--spacing-md);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="24" height="24">
+                            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                    </div>
+                    <h3>HMM Decoding</h3>
                     <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
-                        Behavioral states were classified using Hidden Markov Models with step length and turning angle
-                        as state-dependent distributions.
+                        Movement trajectories were segmented using <strong>Hidden Markov Models</strong>, which infer
+                        latent behavioral states from the joint distribution of step lengths and turning angles.
                     </p>
                     <ul style="color: var(--color-text-tertiary); font-size: 0.875rem; line-height: 1.6;">
-                        <li><strong>Resting:</strong> Short steps, random turns</li>
-                        <li><strong>Foraging:</strong> Medium steps, moderate directionality</li>
-                        <li><strong>Movement:</strong> Long steps, directional</li>
+                        <li><strong>Sleeping:</strong> Nocturnal clusters, minimal displacement.</li>
+                        <li><strong>Low-energy:</strong> Maintenance behaviors, low tortuosity.</li>
+                        <li><strong>Foraging:</strong> High tortuosity, moderate displacement.</li>
+                        <li><strong>Movement:</strong> High-speed relocation, directional persistence.</li>
                     </ul>
                 </div>
 
                 <div class="overview-card">
-                    <h3>Resource Selection Functions (RSF)</h3>
+                    <div class="card-icon" style="margin-bottom: var(--spacing-md);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="24" height="24">
+                            <path d="M3 3v18h18M7 16l4-4 4 4 5-8" />
+                        </svg>
+                    </div>
+                    <h3>RSF Analysis</h3>
                     <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
-                        Habitat selection was modeled using GLM-based RSF comparing used vs. available locations.
+                        <strong>Resource Selection Functions</strong> modeled the probability of selection for specific
+                        environmental features (water, NDVI, terrain) across behavioral states.
                     </p>
                     <ul style="color: var(--color-text-tertiary); font-size: 0.875rem; line-height: 1.6;">
-                        <li><strong>Covariates:</strong> Vegetation, water, terrain</li>
-                        <li><strong>Scale:</strong> 30m resolution</li>
-                        <li><strong>Validation:</strong> k-fold cross-validation</li>
+                        <li><strong>Covariates:</strong> MODIS NDVI, Sentinel-2 landcover, DEM.</li>
+                        <li><strong>Framework:</strong> Logistic Regression (Used vs. Available).</li>
+                        <li><strong>Output:</strong> 30m resolution selection intensity maps.</li>
                     </ul>
                 </div>
 
                 <div class="overview-card">
-                    <h3>BACI Study Design</h3>
+                    <div class="card-icon" style="margin-bottom: var(--spacing-md);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="24" height="24">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3>BACI Design</h3>
                     <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
-                        Before-After-Control-Impact design examining fence removal effects on elephant behavior.
+                        The study follows a <strong>Before-After-Control-Impact (BACI)</strong> design to evaluate how
+                        the removal of the Kariega West fence impacted spatial behavior.
                     </p>
                     <ul style="color: var(--color-text-tertiary); font-size: 0.875rem; line-height: 1.6;">
-                        <li><strong>Pre:</strong> Before fence removal</li>
-                        <li><strong>Interim:</strong> Transition period</li>
-                        <li><strong>Post:</strong> After fence removal</li>
+                        <li><strong>Pre (2022-23):</strong> Physical constraint baseline.</li>
+                        <li><strong>Interim (2024):</strong> Transition and memory persistence.</li>
+                        <li><strong>Post (2024-25):</strong> Full territory expansion/adaptation.</li>
                     </ul>
                 </div>
             </div>
@@ -163,9 +182,166 @@
                                 <h3 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">Hidden
                                     Markov Model (HMM) Decoding</h3>
                                 <p style="color: var(--color-text-secondary); font-size: 0.9375rem; line-height: 1.6;">
-                                    Three-state HMM using step length and turning angle distributions to classify
-                                    behavioral states: Resting (short steps, random turns), Foraging (medium steps,
-                                    moderate directionality), and Movement (long steps, directional).</p>
+                                    A multi-state HMM framework classifies trajectories based on intrinsic movement
+                                    parameters. States include <strong>Sleeping</strong> (nocturnal inactivity),
+                                    <strong>Low-energy</strong> (passive maintenance and nursing),
+                                    <strong>Foraging</strong> (searching), and <strong>Movement</strong> (relocation).
+                                </p>
+
+                                <!-- HMM Infographic -->
+                                <div class="hmm-infographic"
+                                    style="margin-top: var(--spacing-lg); background: rgba(0,0,0,0.3); padding: var(--spacing-xl); border-radius: var(--radius-lg); border: 1px solid var(--glass-border);">
+
+                                    <div style="text-align: center; margin-bottom: var(--spacing-xl);">
+                                        <h4 style="color: var(--color-text-primary); margin-bottom: 4px;">Behavioral
+                                            State Space Visualization</h4>
+                                        <p style="font-size: 0.75rem; color: var(--color-text-tertiary);">Classification
+                                            based on joint distribution of movement parameters</p>
+                                    </div>
+
+                                    <div
+                                        style="display: grid; grid-template-columns: 1.2fr 1fr; gap: var(--spacing-2xl); align-items: center;">
+                                        <!-- Step Length Comparison -->
+                                        <div>
+                                            <div
+                                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                                                <h5
+                                                    style="font-size: 0.8rem; color: var(--color-accent-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">
+                                                    1. Step Length (m)</h5>
+                                                <span style="font-size: 0.7rem; color: var(--color-text-muted);">Gamma
+                                                    Dist.</span>
+                                            </div>
+                                            <div
+                                                style="position: relative; height: 160px; border-left: 2px solid var(--glass-border); border-bottom: 2px solid var(--glass-border); padding: 10px;">
+                                                <!-- Distribution curves (represented as stylized area overlaps) -->
+                                                <div style="position: absolute; bottom: 0; left: 0; width: 10%; height: 20%; background: rgba(26, 26, 26, 0.4); border: 1px solid #1A1A1A; border-bottom: none; border-radius: 4px 4px 0 0;"
+                                                    title="Sleeping"></div>
+                                                <div style="position: absolute; bottom: 0; left: 10%; width: 25%; height: 45%; background: rgba(153, 153, 153, 0.4); border: 1px solid #999999; border-bottom: none; border-radius: 8px 8px 0 0;"
+                                                    title="Low-energy"></div>
+                                                <div style="position: absolute; bottom: 0; left: 35%; width: 40%; height: 75%; background: rgba(230, 159, 0, 0.4); border: 1px solid #E69F00; border-bottom: none; border-radius: 12px 12px 0 0;"
+                                                    title="Foraging"></div>
+                                                <div style="position: absolute; bottom: 0; left: 75%; width: 20%; height: 95%; background: rgba(86, 180, 233, 0.4); border: 1px solid #56B4E9; border-bottom: none; border-radius: 16px 16px 0 0;"
+                                                    title="Movement"></div>
+
+                                                <!-- X-Axis Labels -->
+                                                <div
+                                                    style="position: absolute; bottom: -20px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--color-text-muted);">
+                                                    <span>0m</span>
+                                                    <span>~500m</span>
+                                                    <span>~1500m+</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Turning Angle / Tortuosity -->
+                                        <div>
+                                            <div
+                                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                                                <h5
+                                                    style="font-size: 0.8rem; color: var(--color-accent-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">
+                                                    2. Turning Angle</h5>
+                                                <span style="font-size: 0.7rem; color: var(--color-text-muted);">von
+                                                    Mises Dist.</span>
+                                            </div>
+                                            <div
+                                                style="height: 160px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                                <svg width="120" height="120" viewBox="0 0 100 100">
+                                                    <!-- Coordinate plane -->
+                                                    <circle cx="50" cy="50" r="48" fill="rgba(255,255,255,0.02)"
+                                                        stroke="var(--glass-border)" stroke-width="0.5" />
+                                                    <line x1="50" y1="2" x2="50" y2="98" stroke="var(--glass-border)"
+                                                        stroke-width="0.5" stroke-dasharray="2,2" />
+                                                    <line x1="2" y1="50" x2="98" y2="50" stroke="var(--glass-border)"
+                                                        stroke-width="0.5" stroke-dasharray="2,2" />
+
+                                                    <!-- Classification Vector Overlays -->
+                                                    <!-- Movement: Directed (Up) -->
+                                                    <path d="M 50 50 Q 50 25 50 5" stroke="#56B4E9" stroke-width="2.5"
+                                                        fill="none" stroke-linecap="round"
+                                                        marker-end="url(#arrow-move)" />
+                                                    <!-- Foraging: Correlated random walk -->
+                                                    <path d="M 50 50 Q 70 40 85 25" stroke="#E69F00" stroke-width="2.5"
+                                                        fill="none" stroke-linecap="round"
+                                                        marker-end="url(#arrow-forage)" />
+                                                    <!-- Low-energy: Uncorrelated / Zero-flow -->
+                                                    <circle cx="50" cy="50" r="12" fill="#999999" fill-opacity="0.3"
+                                                        stroke="#999999" stroke-width="1.5" />
+
+                                                    <!-- SVG Defs for markers -->
+                                                    <defs>
+                                                        <marker id="arrow-move" markerWidth="6" markerHeight="6"
+                                                            refX="5" refY="3" orientation="auto">
+                                                            <path d="M 0 0 L 6 3 L 0 6 z" fill="#56B4E9" />
+                                                        </marker>
+                                                        <marker id="arrow-forage" markerWidth="6" markerHeight="6"
+                                                            refX="5" refY="3" orientation="auto">
+                                                            <path d="M 0 0 L 6 3 L 0 6 z" fill="#E69F00" />
+                                                        </marker>
+                                                    </defs>
+                                                </svg>
+                                                <div
+                                                    style="position: absolute; top: -5px; font-size: 0.6rem; color: var(--color-text-muted);">
+                                                    Directed (0°)</div>
+                                                <div
+                                                    style="position: absolute; bottom: -5px; font-size: 0.6rem; color: var(--color-text-muted);">
+                                                    Random (180°)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Classification Legend Box -->
+                                    <div
+                                        style="margin-top: var(--spacing-xl); display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-md); border-top: 1px solid var(--glass-border); padding-top: var(--spacing-lg);">
+                                        <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                                            <div
+                                                style="width: 12px; height: 12px; background: #56B4E9; border-radius: 50%;">
+                                            </div>
+                                            <div>
+                                                <span
+                                                    style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--color-text-primary);">Movement</span>
+                                                <span
+                                                    style="display: block; font-size: 0.65rem; color: var(--color-text-tertiary);">Long
+                                                    steps + Low angles (Directed relocation)</span>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                                            <div
+                                                style="width: 12px; height: 12px; background: #E69F00; border-radius: 50%;">
+                                            </div>
+                                            <div>
+                                                <span
+                                                    style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--color-text-primary);">Foraging</span>
+                                                <span
+                                                    style="display: block; font-size: 0.65rem; color: var(--color-text-tertiary);">Medium
+                                                    steps + Mod. angles (Search tortuosity)</span>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                                            <div
+                                                style="width: 12px; height: 12px; background: #999999; border-radius: 50%;">
+                                            </div>
+                                            <div>
+                                                <span
+                                                    style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--color-text-primary);">Low-energy</span>
+                                                <span
+                                                    style="display: block; font-size: 0.65rem; color: var(--color-text-tertiary);">Short
+                                                    steps + High angles (Maintenance/Nurturing)</span>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                                            <div
+                                                style="width: 12px; height: 12px; background: #1A1A1A; border-radius: 50%; border: 1px solid var(--glass-border);">
+                                            </div>
+                                            <div>
+                                                <span
+                                                    style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--color-text-primary);">Sleeping</span>
+                                                <span
+                                                    style="display: block; font-size: 0.65rem; color: var(--color-text-tertiary);">Static
+                                                    (<10m) + Nocturnal temporal clustering</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -419,7 +595,8 @@
                             Platform</h3>
                         <div
                             style="background: rgba(0,0,0,0.2); padding: var(--spacing-lg); border-radius: var(--radius-md); font-family: var(--font-family-mono); font-size: 0.875rem; color: var(--color-text-secondary); line-height: 1.8;">
-                            [Harin Aiyanna C R; Francesco Pirotti; Brooke Friswold; Antoinete van de Water]. (2025). Interactive Elephant
+                            [Harin Aiyanna C R; Francesco Pirotti; Brooke Friswold; Antoinette van de Water]. (2026).
+                            Interactive Elephant
                             Movement and Behavioral
                             Analysis Platform:
                             Examining fence removal effects using HMM and RSF modeling. <em> Interdepartmental Research

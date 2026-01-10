@@ -104,7 +104,7 @@ async function loadSingleElephant(elephant, period) {
         return;
     }
 
-    const csvPath = `../results/RSF/behavioral_points/${elephant}_behavioral_points.csv`;
+    const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
 
     return new Promise((resolve, reject) => {
         Papa.parse(csvPath, {
@@ -165,10 +165,10 @@ async function loadAllElephants(period) {
     }
 
     const elephants = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
-    const allData = [];
+    let allData = [];
 
     for (const elephant of elephants) {
-        const csvPath = `../results/RSF/behavioral_points/${elephant}_behavioral_points.csv`;
+        const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
 
         await new Promise((resolve, reject) => {
             Papa.parse(csvPath, {
@@ -218,14 +218,18 @@ async function loadAllElephants(period) {
 function calculateSummary(data) {
     const total = data.length;
     const behaviors = {
-        'Resting': 0,
+        'Sleeping': 0,
+        'Low-energy': 0,
         'Foraging': 0,
-        'Movement': 0
+        'Movement': 0,
+        'Bounce': 0
     };
 
     data.forEach(row => {
         // Handle both 'behavior' and 'Behavior' columns
-        const behavior = row.behavior || row.Behavior || row.state;
+        let behavior = row.behavior || row.Behavior || row.state;
+        if (behavior === 'Resting') behavior = 'Low-energy';
+
         if (behaviors.hasOwnProperty(behavior)) {
             behaviors[behavior]++;
         }
@@ -251,9 +255,11 @@ function calculateSummary(data) {
         total,
         behaviors,
         percentages: {
-            resting: total > 0 ? ((behaviors.Resting / total) * 100).toFixed(1) : 0,
+            sleeping: total > 0 ? ((behaviors.Sleeping / total) * 100).toFixed(1) : 0,
+            resting: total > 0 ? ((behaviors['Low-energy'] / total) * 100).toFixed(1) : 0,
             foraging: total > 0 ? ((behaviors.Foraging / total) * 100).toFixed(1) : 0,
-            movement: total > 0 ? ((behaviors.Movement / total) * 100).toFixed(1) : 0
+            movement: total > 0 ? ((behaviors.Movement / total) * 100).toFixed(1) : 0,
+            bounce: total > 0 ? ((behaviors.Bounce / total) * 100).toFixed(1) : 0
         },
         dateRange: {
             min: minDate,
@@ -266,9 +272,11 @@ function calculateSummary(data) {
 // Update statistics display
 function updateStatistics(summary) {
     document.getElementById('total-points').textContent = summary.total.toLocaleString();
+    document.getElementById('sleeping-pct').textContent = `${summary.percentages.sleeping}%`;
     document.getElementById('resting-pct').textContent = `${summary.percentages.resting}%`;
     document.getElementById('foraging-pct').textContent = `${summary.percentages.foraging}%`;
     document.getElementById('movement-pct').textContent = `${summary.percentages.movement}%`;
+    document.getElementById('bounce-pct').textContent = `${summary.percentages.bounce}%`;
 
     if (summary.dateRange.min && summary.dateRange.max) {
         const dateStr = `${summary.dateRange.min.toLocaleDateString()} - ${summary.dateRange.max.toLocaleDateString()}`;
@@ -278,6 +286,13 @@ function updateStatistics(summary) {
     }
 
     document.getElementById('duration-days').textContent = summary.duration > 0 ? summary.duration : '-';
+
+    // Update rest-forage ratio
+    const restingCount = summary.behaviors['Low-energy'] || 0;
+    const foragingCount = summary.behaviors.Foraging || 0;
+    const ratio = foragingCount > 0 ? (restingCount / foragingCount).toFixed(2) : '-';
+    const ratioEl = document.getElementById('rest-forage-ratio');
+    if (ratioEl) ratioEl.textContent = ratio;
 
     // Update elephant profile card
     updateElephantProfile();
@@ -438,13 +453,17 @@ function renderTimeBudgetChart() {
 
     // Recalculate summary for filtered data
     const behaviorCounts = {
-        Resting: 0,
+        Sleeping: 0,
+        'Low-energy': 0,
         Foraging: 0,
-        Movement: 0
+        Movement: 0,
+        Bounce: 0
     };
 
     filteredData.forEach(row => {
-        const behavior = row.behavior || row.Behavior || row.state;
+        let behavior = row.behavior || row.Behavior || row.state;
+        if (behavior === 'Resting') behavior = 'Low-energy';
+
         if (behaviorCounts[behavior] !== undefined) {
             behaviorCounts[behavior]++;
         }
@@ -453,22 +472,28 @@ function renderTimeBudgetChart() {
     charts.timeBudget = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Resting', 'Foraging', 'Movement'],
+            labels: ['Sleeping', 'Low-energy', 'Foraging', 'Movement', 'Bounce'],
             datasets: [{
                 data: [
-                    behaviorCounts.Resting,
+                    behaviorCounts.Sleeping,
+                    behaviorCounts['Low-energy'],
                     behaviorCounts.Foraging,
-                    behaviorCounts.Movement
+                    behaviorCounts.Movement,
+                    behaviorCounts.Bounce
                 ],
                 backgroundColor: [
-                    'rgba(59, 130, 246, 0.8)',  // Resting - blue
-                    'rgba(16, 185, 129, 0.8)',  // Foraging - green
-                    'rgba(245, 158, 11, 0.8)'   // Movement - orange
+                    'rgba(153, 153, 153, 0.8)', // Sleeping - grey
+                    'rgba(230, 159, 0, 0.8)',   // Low-energy - orange
+                    'rgba(16, 185, 129, 0.8)',   // Foraging - green
+                    'rgba(86, 180, 233, 0.8)',   // Movement - light blue
+                    'rgba(228, 26, 28, 0.8)'    // Bounce - red
                 ],
                 borderColor: [
-                    'rgba(59, 130, 246, 1)',
+                    'rgba(153, 153, 153, 1)',
+                    'rgba(230, 159, 0, 1)',
                     'rgba(16, 185, 129, 1)',
-                    'rgba(245, 158, 11, 1)'
+                    'rgba(86, 180, 233, 1)',
+                    'rgba(228, 26, 28, 1)'
                 ],
                 borderWidth: 2
             }]
@@ -589,16 +614,20 @@ function renderSeasonalPatterns() {
 
     // Group data by month
     const monthlyData = Array(12).fill(0).map(() => ({
-        Resting: 0,
+        Sleeping: 0,
+        'Low-energy': 0,
         Foraging: 0,
-        Movement: 0
+        Movement: 0,
+        Bounce: 0
     }));
 
     filteredData.forEach(row => {
         const date = new Date(row.date || row.Date);
         if (!isNaN(date)) {
             const month = date.getMonth();
-            const behavior = row.behavior || row.Behavior || row.state;
+            let behavior = row.behavior || row.Behavior || row.state;
+            if (behavior === 'Resting') behavior = 'Low-energy';
+
             if (monthlyData[month][behavior] !== undefined) {
                 monthlyData[month][behavior]++;
             }
@@ -606,11 +635,15 @@ function renderSeasonalPatterns() {
     });
 
     // Calculate summary statistics
-    const totalObs = filteredData.length;
     const behaviorCounts = {
-        Resting: filteredData.filter(r => (r.behavior || r.Behavior || r.state) === 'Resting').length,
+        Sleeping: filteredData.filter(r => (r.behavior || r.Behavior || r.state) === 'Sleeping').length,
+        'Low-energy': filteredData.filter(r => {
+            const b = r.behavior || r.Behavior || r.state;
+            return b === 'Resting' || b === 'Low-energy';
+        }).length,
         Foraging: filteredData.filter(r => (r.behavior || r.Behavior || r.state) === 'Foraging').length,
-        Movement: filteredData.filter(r => (r.behavior || r.Behavior || r.state) === 'Movement').length
+        Movement: filteredData.filter(r => (r.behavior || r.Behavior || r.state) === 'Movement').length,
+        Bounce: filteredData.filter(r => (r.behavior || r.Behavior || r.state) === 'Bounce').length
     };
 
     const dominantBehavior = Object.keys(behaviorCounts).reduce((a, b) =>
@@ -629,7 +662,7 @@ function renderSeasonalPatterns() {
     }
 
     document.getElementById('seasonal-period-text').textContent = periodText;
-    document.getElementById('seasonal-obs').textContent = totalObs.toLocaleString();
+    document.getElementById('seasonal-obs').textContent = filteredData.length.toLocaleString();
     document.getElementById('seasonal-dominant').textContent = dominantBehavior;
 
     // Render chart
@@ -639,10 +672,17 @@ function renderSeasonalPatterns() {
             labels: monthNames,
             datasets: [
                 {
-                    label: 'Resting',
-                    data: monthlyData.map(m => m.Resting),
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
+                    label: 'Sleeping',
+                    data: monthlyData.map(m => m.Sleeping),
+                    backgroundColor: 'rgba(153, 153, 153, 0.8)',
+                    borderColor: 'rgba(153, 153, 153, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Low-energy',
+                    data: monthlyData.map(m => m['Low-energy']),
+                    backgroundColor: 'rgba(230, 159, 0, 0.8)',
+                    borderColor: 'rgba(230, 159, 0, 1)',
                     borderWidth: 1
                 },
                 {
@@ -655,8 +695,15 @@ function renderSeasonalPatterns() {
                 {
                     label: 'Movement',
                     data: monthlyData.map(m => m.Movement),
-                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
-                    borderColor: 'rgba(245, 158, 11, 1)',
+                    backgroundColor: 'rgba(86, 180, 233, 0.8)',
+                    borderColor: 'rgba(86, 180, 233, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Bounce',
+                    data: monthlyData.map(m => m.Bounce),
+                    backgroundColor: 'rgba(228, 26, 28, 0.8)',
+                    borderColor: 'rgba(228, 26, 28, 1)',
                     borderWidth: 1
                 }
             ]
@@ -750,9 +797,11 @@ function renderTemporalPattern() {
 
     // Group data by hour
     const hourlyData = Array(24).fill(0).map(() => ({
-        Resting: 0,
+        Sleeping: 0,
+        'Low-energy': 0,
         Foraging: 0,
-        Movement: 0
+        Movement: 0,
+        Bounce: 0
     }));
 
     filteredData.forEach(row => {
@@ -760,12 +809,17 @@ function renderTemporalPattern() {
         if (!isNaN(date)) {
             const hour = date.getHours();
             // Handle both 'behavior' and 'Behavior' columns
-            const behavior = row.behavior || row.Behavior || row.state;
+            let behavior = row.behavior || row.Behavior || row.state;
+            if (behavior === 'Resting') behavior = 'Low-energy';
+
             if (hourlyData[hour][behavior] !== undefined) {
                 hourlyData[hour][behavior]++;
             }
         }
     });
+
+    // Also update currentAnalysis check if it exists (for safety)
+    if (typeof currentAnalysis === 'undefined') currentAnalysis = 'time-budget';
 
     charts.temporal = new Chart(ctx, {
         type: 'bar',
@@ -773,10 +827,17 @@ function renderTemporalPattern() {
             labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
             datasets: [
                 {
-                    label: 'Resting',
-                    data: hourlyData.map(h => h.Resting),
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
+                    label: 'Sleeping',
+                    data: hourlyData.map(h => h.Sleeping),
+                    backgroundColor: 'rgba(153, 153, 153, 0.8)',
+                    borderColor: 'rgba(153, 153, 153, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Low-energy',
+                    data: hourlyData.map(h => h['Low-energy']),
+                    backgroundColor: 'rgba(230, 159, 0, 0.8)',
+                    borderColor: 'rgba(230, 159, 0, 1)',
                     borderWidth: 1
                 },
                 {
@@ -789,8 +850,15 @@ function renderTemporalPattern() {
                 {
                     label: 'Movement',
                     data: hourlyData.map(h => h.Movement),
-                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
-                    borderColor: 'rgba(245, 158, 11, 1)',
+                    backgroundColor: 'rgba(86, 180, 233, 0.8)',
+                    borderColor: 'rgba(86, 180, 233, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Bounce',
+                    data: hourlyData.map(h => h.Bounce),
+                    backgroundColor: 'rgba(228, 26, 28, 0.8)',
+                    borderColor: 'rgba(228, 26, 28, 1)',
                     borderWidth: 1
                 }
             ]
@@ -875,7 +943,7 @@ async function renderPeriodComparison() {
     const periodData = {};
 
     for (const period of periods) {
-        const csvPath = `../results/RSF/behavioral_points/${currentElephant}_behavioral_points.csv`;
+        const csvPath = `data/behavioral_points/${currentElephant}_behavioral_points.csv`;
 
         await new Promise((resolve) => {
             Papa.parse(csvPath, {
@@ -907,40 +975,46 @@ async function renderPeriodComparison() {
     charts.comparison = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Resting', 'Foraging', 'Movement'],
+            labels: ['Sleeping', 'Low-energy', 'Foraging', 'Movement', 'Bounce'],
             datasets: [
                 {
                     label: 'Pre',
                     data: [
+                        periodData.PRE.percentages.sleeping,
                         periodData.PRE.percentages.resting,
                         periodData.PRE.percentages.foraging,
-                        periodData.PRE.percentages.movement
+                        periodData.PRE.percentages.movement,
+                        periodData.PRE.percentages.bounce
                     ],
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 2
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
                 },
                 {
                     label: 'Interim',
                     data: [
+                        periodData.INTERIM.percentages.sleeping,
                         periodData.INTERIM.percentages.resting,
                         periodData.INTERIM.percentages.foraging,
-                        periodData.INTERIM.percentages.movement
+                        periodData.INTERIM.percentages.movement,
+                        periodData.INTERIM.percentages.bounce
                     ],
-                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
-                    borderColor: 'rgba(245, 158, 11, 1)',
-                    borderWidth: 2
+                    backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                    borderColor: 'rgb(245, 158, 11)',
+                    borderWidth: 1
                 },
                 {
                     label: 'Post',
                     data: [
+                        periodData.POST.percentages.sleeping,
                         periodData.POST.percentages.resting,
                         periodData.POST.percentages.foraging,
-                        periodData.POST.percentages.movement
+                        periodData.POST.percentages.movement,
+                        periodData.POST.percentages.bounce
                     ],
-                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                    borderColor: 'rgba(16, 185, 129, 1)',
-                    borderWidth: 2
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1
                 }
             ]
         },

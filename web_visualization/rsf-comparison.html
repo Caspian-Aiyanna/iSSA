@@ -28,6 +28,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Overview</a></li>
                 <li><a href="methodology.html" class="nav-link">Methodology</a></li>
+                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="explorer.html" class="nav-link">Trajectory Explorer</a></li>
                 <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
                 <li><a href="rsf-comparison.html" class="nav-link active">RSF Comparison</a></li>
@@ -48,6 +49,10 @@
                     <div class="info-item">
                         <div class="info-label">Home Range</div>
                         <div class="info-value" id="home-range">Kariega West</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Data Coverage</div>
+                        <div class="info-value" id="map-extent">Pre, Interim, Post</div>
                     </div>
                 </div>
             </div>
@@ -169,44 +174,6 @@
                 </div>
             </div>
 
-            <div class="panel-section">
-                <h3 class="panel-title">Behavioral State</h3>
-                <div class="behavior-selector">
-                    <button class="behavior-btn" data-behavior="Resting">
-                        <span class="behavior-dot"
-                            style="background: var(--color-resting); margin: 0 auto 0.5rem;"></span>
-                        Resting
-                    </button>
-                    <button class="behavior-btn active" data-behavior="Foraging">
-                        <span class="behavior-dot"
-                            style="background: var(--color-foraging); margin: 0 auto 0.5rem;"></span>
-                        Foraging
-                    </button>
-                    <button class="behavior-btn" data-behavior="Movement">
-                        <span class="behavior-dot"
-                            style="background: var(--color-movement); margin: 0 auto 0.5rem;"></span>
-                        Movement
-                    </button>
-                </div>
-            </div>
-
-            <div class="panel-section">
-                <h3 class="panel-title">Visualization Mode</h3>
-                <div class="map-type-selector">
-                    <button class="map-type-btn active" data-type="Realized">Realized</button>
-                    <button class="map-type-btn" data-type="Usage">Usage</button>
-                </div>
-            </div>
-
-            <div class="panel-section">
-                <h3 class="panel-title">View Mode</h3>
-                <div class="comparison-selector">
-                    <button class="comparison-btn active" data-mode="single">Single</button>
-                    <button class="comparison-btn" data-mode="side-by-side">Side-by-Side</button>
-                    <button class="comparison-btn" data-mode="overlay">Overlay</button>
-                </div>
-            </div>
-
             <div class="panel-section" id="single-period-controls">
                 <h3 class="panel-title">Study Period</h3>
                 <div class="period-selector">
@@ -235,6 +202,45 @@
                             <option value="post" selected>Post</option>
                         </select>
                     </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Behavioral State</h3>
+                <div class="behavior-selector">
+                    <button class="behavior-btn" data-behavior="Sleeping">
+                        <span class="behavior-dot" style="background: #1A1A1A; margin: 0 auto 0.5rem;"></span>
+                        Sleeping
+                    </button>
+                    <button class="behavior-btn" data-behavior="Resting">
+                        <span class="behavior-dot" style="background: #999999; margin: 0 auto 0.5rem;"></span>
+                        Low-energy
+                    </button>
+                    <button class="behavior-btn active" data-behavior="Foraging">
+                        <span class="behavior-dot" style="background: #E69F00; margin: 0 auto 0.5rem;"></span>
+                        Foraging
+                    </button>
+                    <button class="behavior-btn" data-behavior="Movement">
+                        <span class="behavior-dot" style="background: #56B4E9; margin: 0 auto 0.5rem;"></span>
+                        Movement
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Visualization Mode</h3>
+                <div class="map-type-selector">
+                    <button class="map-type-btn active" data-type="Realized">Realized</button>
+                    <button class="map-type-btn" data-type="Usage">Usage</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">View Mode</h3>
+                <div class="comparison-selector">
+                    <button class="comparison-btn active" data-mode="single">Single</button>
+                    <button class="comparison-btn" data-mode="side-by-side">Side-by-Side</button>
+                    <button class="comparison-btn" data-mode="overlay">Overlay</button>
                 </div>
             </div>
 

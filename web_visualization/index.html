@@ -36,6 +36,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link active">Overview</a></li>
                 <li><a href="methodology.html" class="nav-link">Methodology</a></li>
+                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="explorer.html" class="nav-link">Trajectory Explorer</a></li>
                 <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
                 <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
@@ -95,8 +96,8 @@
                     <div class="stat-label">Study Periods</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">3</div>
-                    <div class="stat-label">Behavioral States</div>
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Behavioral Classes</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">10K+</div>
@@ -153,8 +154,8 @@
                         </svg>
                     </div>
                     <h3>HMM Decoding</h3>
-                    <p>Hidden Markov Models classify movement into three behavioral states: Resting (Blue), Foraging
-                        (Green), and Movement (Orange).</p>
+                    <p>Hierarchical Hidden Markov Models (HMM) classify trajectories into binary states: Sleeping,
+                        Low-energy, Foraging, and Movement, with spatial interactions (Bounce).</p>
                 </div>
                 <div class="overview-card">
                     <div class="card-icon">
@@ -172,28 +173,84 @@
         </div>
     </section>
 
-    <!-- Key Findings -->
+    <!-- Research Framework -->
     <section class="section section-dark">
-        <div class="container">
-            <h2 class="section-title">Key Findings</h2>
-            <div class="findings-grid">
+        <div class="container text-center">
+            <h2 class="section-title">Research Framework</h2>
+            <p class="section-subtitle">A multi-scale investigation into elephant behavioral shifts and spatial
+                constraints following landscape-level management interventions.</p>
+
+            <div class="research-grid">
+                <!-- RQ 1 -->
                 <div class="finding-card">
-                    <div class="finding-number">01</div>
-                    <h3>Behavioral Shifts</h3>
-                    <p>Significant changes in time budgets observed post-fence removal, with increased foraging activity
-                        in previously restricted areas.</p>
+                    <div class="finding-number">RQ 1</div>
+                    <h3>Overall Activity Budgets</h3>
+                    <p class="rq-text">How do African elephants allocate time among movement, foraging, sleeping, and
+                        low-energy behavioral states as inferred from GPS collar data?</p>
+                    <div class="prediction-box">
+                        <strong>Predictions:</strong>
+                        <ul>
+                            <li>Primary allocation to low-energy and foraging states; movement and sleeping comprising
+                                smaller fractions.</li>
+                            <li>Seasonal variance: Increased movement during resource-limited periods vs. low-energy
+                                behavior during resource-rich periods.</li>
+                            <li>Sleeping states spatially and temporally clustered (predominantly night/low-disturbance
+                                zones).</li>
+                        </ul>
+                    </div>
                 </div>
+
+                <!-- RQ 2 -->
                 <div class="finding-card">
-                    <div class="finding-number">02</div>
-                    <h3>Habitat Expansion</h3>
-                    <p>Elephants E3, E4, and E5 showed substantial range expansion in the post period, accessing novel
-                        habitat types.</p>
+                    <div class="finding-number">RQ 2</div>
+                    <h3>Spatial Distribution (RSF)</h3>
+                    <p class="rq-text">How does the spatial distribution of behavioral states vary across the landscape
+                        to identify core areas and movement corridors?</p>
+                    <div class="prediction-box">
+                        <strong>Predictions:</strong>
+                        <ul>
+                            <li>Foraging/Low-energy associated with high vegetation productivity resource zones.</li>
+                            <li>Movement concentrated along repeat-use pathways linking core areas.</li>
+                            <li>Sleeping selected for spatially discrete areas with reduced human disturbance.</li>
+                        </ul>
+                    </div>
                 </div>
+
+                <!-- RQ 3 -->
                 <div class="finding-card">
-                    <div class="finding-number">03</div>
-                    <h3>Ghost Fence Effect</h3>
-                    <p>Temporal analysis reveals gradual diminishing of fence-line avoidance behavior over the interim
-                        and post periods.</p>
+                    <div class="finding-number">RQ 3</div>
+                    <h3>Demographic Variation</h3>
+                    <p class="rq-text">How do activity budgets and spatial selection differ among elephants by sex, age
+                        class, and social grouping?</p>
+                    <div class="prediction-box">
+                        <strong>Predictions:</strong>
+                        <ul>
+                            <li>Adult males exhibiting higher movement and broader spatial use, especially during musth.
+                            </li>
+                            <li>Family groups with calves selecting for areas proximal to water and protective cover.
+                            </li>
+                            <li>Exploratory vs. risk-averse herds showing distinct adaptation patterns in newly
+                                accessible habitat.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- RQ 4 -->
+                <div class="finding-card">
+                    <div class="finding-number">RQ 4</div>
+                    <h3>Ghost Fence Persistence</h3>
+                    <p class="rq-text">Do elephants exhibit persistent movement constraints consonant with a "ghost
+                        fence" effect following physical removal?</p>
+                    <div class="prediction-box">
+                        <strong>Predictions:</strong>
+                        <ul>
+                            <li>Initial persistence of turning/slowing near former lines with increased tortuosity.</li>
+                            <li>Temporal decline: Strength of effect diminishes as crossings and spatial expansion
+                                increase.</li>
+                            <li>Older individuals/socially conservative herds showing longer behavioral persistence.
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -263,8 +320,8 @@
                             <div class="mini-stat"><span class="mini-label">Periods</span><span class="mini-value">Pre,
                                     Interim</span></div>
                         </div>
-                        <p class="elephant-desc">Baseline behavioral patterns in KW zone with consistent foraging and
-                            resting cycles.</p>
+                        <p class="elephant-desc">Ecological baseline in the Kariega West (KW) exclusion zone,
+                            demonstrating typical daily periodicity in foraging and maintenance behavior.</p>
                     </div>
                     <div class="elephant-card male" data-elephant="E2">
                         <div class="elephant-image"><img src="elephants/Kambaku_1.jpg" alt="Kambaku (E2)"></div>

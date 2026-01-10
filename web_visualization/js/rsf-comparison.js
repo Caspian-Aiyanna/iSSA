@@ -619,7 +619,8 @@ function switchComparisonMode(mode) {
 }
 
 function updateMapTitle() {
-    let title = `RSF ${currentMapType} - ${currentElephant} ${currentBehavior}`;
+    const displayBehavior = currentBehavior === 'Resting' || currentBehavior === 'resting' ? 'Low-energy' : currentBehavior;
+    let title = `RSF ${currentMapType} - ${currentElephant} ${displayBehavior}`;
 
     if (comparisonMode === 'single') {
         title += ` (${currentPeriod.toUpperCase()})`;
@@ -629,13 +630,12 @@ function updateMapTitle() {
         title += ` (${periodLeft.toUpperCase()} + ${periodRight.toUpperCase()} Overlay)`;
     }
 
-    document.getElementById('map-title').textContent = title;
+    const titleEl = document.getElementById('map-title');
+    if (titleEl) titleEl.textContent = title;
 }
 
 function updateMapInfo() {
-    // Home range mapping based on actual elephant locations and data availability
-    // E1, E2, E3, E4: KW (Kariega West) - all periods
-    // E5, E6: HV (Harvestvale) for PRE, then Kariega for INTERIM and POST
+    // Home range mapping
     const homeRangeMap = {
         'E1': { range: 'KW (Kariega West)', periods: ['pre', 'interim'] },
         'E2': { range: 'KW (Kariega West)', periods: ['pre', 'interim'] },
@@ -648,8 +648,14 @@ function updateMapInfo() {
     const elephantInfo = homeRangeMap[currentElephant];
 
     if (elephantInfo) {
-        document.getElementById('home-range').textContent = elephantInfo.range;
-        document.getElementById('map-extent').textContent = elephantInfo.periods.map(p => p.toUpperCase()).join(', ');
+        const rangeEl = document.getElementById('home-range');
+        if (rangeEl) rangeEl.textContent = elephantInfo.range;
+
+        const extentEl = document.getElementById('map-extent');
+        if (extentEl) extentEl.textContent = elephantInfo.periods.map(p => p.toUpperCase()).join(', ');
+
+        const nameEl = document.getElementById('elephant-name');
+        if (nameEl) nameEl.textContent = `Elephant ${currentElephant.replace('E', '')}`;
     }
 }
 
@@ -694,7 +700,8 @@ async function exportGISMap() {
         controls.forEach(c => c.style.display = '');
 
         const dateStr = new Date().toLocaleDateString();
-        const elephantName = document.getElementById('elephant-name').textContent;
+        const elephantNameEl = document.getElementById('elephant-name');
+        const elephantName = elephantNameEl ? elephantNameEl.textContent : currentElephant;
         const behaviorName = currentBehavior;
         const periodName = currentPeriod.toUpperCase();
 

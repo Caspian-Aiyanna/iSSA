@@ -15,6 +15,7 @@ let markerLayer = null;
 let isPlaying = false;
 let currentIndex = 0;
 let animationInterval = null;
+let animatedPath = null;
 
 // ===================================
 // INITIALIZATION
@@ -141,7 +142,7 @@ async function loadRealData() {
 
     try {
         // Construct path to CSV file
-        const csvPath = `../results/RSF/behavioral_points/${currentElephant}_behavioral_points.csv`;
+        const csvPath = `data/behavioral_points/${currentElephant}_behavioral_points.csv`;
 
         console.log('Loading CSV from:', csvPath);
 
@@ -175,7 +176,7 @@ async function loadRealData() {
         showDataStatus('error',
             `<strong>Error loading data:</strong><br>` +
             `${error.message}<br>` +
-            `<small>Make sure the CSV file exists at: ../results/RSF/behavioral_points/${currentElephant}_behavioral_points.csv</small>`
+            `<small>Make sure the CSV file exists at: data/behavioral_points/${currentElephant}_behavioral_points.csv</small>`
         );
         document.getElementById('loading').style.display = 'none';
     }
@@ -238,7 +239,7 @@ function filterDataByPeriod() {
         return {
             lat: lat,
             lng: lng,
-            behavior: row.behavior || 'Unknown',
+            behavior: (row.behavior === 'Resting' || row.Behavior === 'Resting' || row.state === 'Resting') ? 'Low-energy' : (row.behavior || 'Unknown'),
             time: row.date,
             timestamp: !isNaN(dateTime) ? dateTime.getTime() : 0,
             zone: row.Zone || ''
@@ -353,9 +354,11 @@ function renderTrajectory() {
 
 function getBehaviorColor(behavior) {
     const colors = {
-        'Resting': '#3b82f6',
-        'Foraging': '#10b981',
-        'Movement': '#f59e0b'
+        'Sleeping': '#999999',
+        'Low-energy': '#E69F00',
+        'Foraging': '#10B981',
+        'Movement': '#56B4E9',
+        'Bounce': '#E41A1C'
     };
     return colors[behavior] || '#667eea';
 }
@@ -364,17 +367,19 @@ function updateStatistics() {
     if (!trajectoryData || trajectoryData.length === 0) return;
 
     // Calculate behavior distribution
-    const counts = { Resting: 0, Foraging: 0, Movement: 0 };
+    const counts = { Sleeping: 0, 'Low-energy': 0, Foraging: 0, Movement: 0, Bounce: 0 };
     trajectoryData.forEach(point => {
         if (counts.hasOwnProperty(point.behavior)) {
             counts[point.behavior]++;
         }
     });
 
-    const total = counts.Resting + counts.Foraging + counts.Movement;
-    const restingPct = Math.round((counts.Resting / total) * 100);
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const sleepingPct = Math.round((counts.Sleeping / total) * 100);
+    const restingPct = Math.round((counts['Low-energy'] / total) * 100);
     const foragingPct = Math.round((counts.Foraging / total) * 100);
-    const movementPct = 100 - restingPct - foragingPct;
+    const movementPct = Math.round((counts.Movement / total) * 100);
+    const bouncePct = Math.round((counts.Bounce / total) * 100);
 
     // Display statistics
     document.getElementById('total-points').textContent = trajectoryData.length.toLocaleString();
@@ -392,14 +397,18 @@ function updateStatistics() {
         document.getElementById('date-range').textContent = dateRange;
     }
 
+    document.getElementById('sleeping-pct').textContent = `${sleepingPct}%`;
     document.getElementById('resting-pct').textContent = `${restingPct}%`;
     document.getElementById('foraging-pct').textContent = `${foragingPct}%`;
     document.getElementById('movement-pct').textContent = `${movementPct}%`;
+    document.getElementById('bounce-pct').textContent = `${bouncePct}%`;
 
     // Update distribution bar
+    document.querySelector('.bar-segment.sleeping').style.width = `${sleepingPct}%`;
     document.querySelector('.bar-segment.resting').style.width = `${restingPct}%`;
     document.querySelector('.bar-segment.foraging').style.width = `${foragingPct}%`;
     document.querySelector('.bar-segment.movement').style.width = `${movementPct}%`;
+    document.querySelector('.bar-segment.bounce').style.width = `${bouncePct}%`;
 }
 
 // ===================================
@@ -603,6 +612,10 @@ function pauseAnimation() {
 function resetAnimation() {
     pauseAnimation();
     currentIndex = 0;
+    if (animatedPath) {
+        map.removeLayer(animatedPath);
+        animatedPath = null;
+    }
     document.getElementById('time-slider').value = 0;
     updateCurrentPosition();
 }
@@ -615,6 +628,19 @@ function updateCurrentPosition() {
     // Remove old marker
     if (currentMarker) {
         map.removeLayer(currentMarker);
+    }
+
+    // Handle animated path drawing
+    const history = trajectoryData.slice(0, currentIndex + 1).map(p => [p.lat, p.lng]);
+    if (!animatedPath) {
+        animatedPath = L.polyline(history, {
+            color: '#fff',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '5, 10'
+        }).addTo(map);
+    } else {
+        animatedPath.setLatLngs(history);
     }
 
     // Add pulsing marker at current position
@@ -633,16 +659,22 @@ function updateCurrentPosition() {
         timeStyle: 'medium'
     });
 
+    const displayBehavior = point.behavior;
+
     currentMarker.bindTooltip(`
-        <strong>${point.behavior}</strong><br>
+        <strong>${displayBehavior}</strong><br>
         Time (SAST): ${currentSast}
     `, { permanent: false, direction: 'top' }).openTooltip();
 
     // Update center display
     document.getElementById('current-time').textContent = currentSast;
+    document.getElementById('current-behavior').textContent = displayBehavior;
+    document.getElementById('current-behavior').style.background = getBehaviorColor(point.behavior);
 
-    // Smoothly pan to current position
-    map.panTo([point.lat, point.lng], { animate: true });
+    // Smoothly pan to current position if playing
+    if (isPlaying) {
+        map.panTo([point.lat, point.lng], { animate: true });
+    }
 }
 
 // ===================================

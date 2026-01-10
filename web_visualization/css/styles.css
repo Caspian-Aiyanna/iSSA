@@ -20,9 +20,11 @@
     --gradient-success: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 
     /* Behavioral Colors */
-    --color-resting: #3b82f6;
-    --color-foraging: #10b981;
-    --color-movement: #f59e0b;
+    --color-resting: #E69F00;
+    --color-foraging: #10B981;
+    --color-movement: #56B4E9;
+    --color-sleeping: #999999;
+    --color-bounce: #E41A1C;
 
     /* Text Colors */
     --color-text-primary: #f8fafc;
@@ -627,7 +629,7 @@ body {
 }
 
 .finding-number {
-    font-size: 3.5rem;
+    font-size: 2.5rem;
     font-weight: 900;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
@@ -637,6 +639,95 @@ body {
     margin-bottom: var(--spacing-sm);
     opacity: 0.9;
     filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.3));
+}
+
+.research-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-2xl);
+}
+
+/* Animations for Research Framework */
+.research-grid .finding-card {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.research-grid .finding-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.research-grid .finding-card:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.research-grid .finding-card:nth-child(3) {
+    animation-delay: 0.5s;
+}
+
+.research-grid .finding-card:nth-child(4) {
+    animation-delay: 0.7s;
+}
+
+.research-grid .finding-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent-tertiary);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(102, 126, 234, 0.1);
+}
+
+@keyframes revealUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.rq-text {
+    font-style: italic;
+    color: var(--color-text-primary) !important;
+    margin-bottom: var(--spacing-lg) !important;
+    font-size: 1rem;
+    border-left: 3px solid var(--color-accent-tertiary);
+    padding-left: var(--spacing-md);
+}
+
+.prediction-box {
+    text-align: left;
+    background: rgba(0, 0, 0, 0.2);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+}
+
+.prediction-box strong {
+    display: block;
+    color: var(--color-accent-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--spacing-xs);
+}
+
+.prediction-box ul {
+    list-style: none;
+    padding: 0;
+}
+
+.prediction-box li {
+    position: relative;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-tertiary);
+}
+
+.prediction-box li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--color-accent-tertiary);
 }
 
 .finding-card h3 {
@@ -1270,4 +1361,78 @@ body {
 .feature-card:hover::before,
 .elephant-card:hover::before {
     left: 150%;
+}
+
+/* Global Responsive Fixes */
+@media (max-width: 992px) {
+
+    .overview-grid,
+    .findings-grid,
+    .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-lg);
+    }
+}
+
+@media (max-width: 768px) {
+    html {
+        font-size: 14px;
+    }
+
+    .nav-container {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+    }
+
+    .nav-menu {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .nav-link {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.8rem;
+    }
+
+    .overview-grid,
+    .findings-grid,
+    .feature-grid,
+    .elephant-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-title {
+        font-size: 2.5rem !important;
+    }
+
+    .hero-stats {
+        flex-direction: column;
+        gap: var(--spacing-lg) !important;
+    }
+
+    .hero-cta {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .section {
+        padding: var(--spacing-xl) 0;
+    }
+}
+
+/* High-Resolution / Large Screen Optimization */
+@media (min-width: 1800px) {
+
+    .container,
+    .nav-container,
+    .ghost-fence-container {
+        max-width: 1600px;
+    }
+
+    html {
+        font-size: 18px;
+    }
 }

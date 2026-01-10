@@ -35,14 +35,11 @@ target_crs <- 32735 # UTM 35S
 cache_file <- file.path(out_dir, "hmm_results_all_elephants.rds")
 
 # BACI Time Periods
-# Pre-period ends before December 1, 2023 (before gradual fence removal began)
-pre_end_date <- dmy("30-11-2023")
-removal_date <- dmy("23-01-2024") # Official removal completion date
-
+# Synchronized with 04_ecological_behavior_analysis_v5.R
 periods <- list(
-    pre     = interval(dmy("04-08-2022"), pre_end_date),
-    interim = interval(pre_end_date + days(1), removal_date + days(14)),
-    post    = interval(removal_date + days(15), dmy("14-07-2025"))
+    pre     = interval(ymd("2020-01-01"), ymd("2023-12-09")),
+    interim = interval(ymd("2023-12-10"), ymd("2024-02-09")),
+    post    = interval(ymd("2024-02-10"), ymd("2026-12-31"))
 )
 
 # Custom Color Scale (Blue = Low, Red = High)
@@ -70,173 +67,26 @@ names(r_stack) <- safe_names
 stack_crs <- terra::crs(r_stack)
 
 # ==============================================================================
-# 4. BACI Data Loading & 3st-HMM Behavior Decoding
+# 4. Loading Master Calibrated Behavioral Points (V5 - 4-State HMM)
 # ==============================================================================
 
-# Handle command-line argument for elephant ID
-args <- commandArgs(trailingOnly = TRUE)
-force_rerun <- "--force" %in% args
-if (length(args) > 0 && !force_rerun) {
-    ele_ids <- args[args != "--force"][1]
-    cat("Targeting specific elephant:", ele_ids, "\n")
-} else {
-    ele_ids <- c("E1", "E2", "E3", "E4", "E5", "E6")
+cat("Loading Calibrated 4-State Behavioral Points (V5)...\n")
+master_behavior_file <- file.path(root_dir, "results", "Ecological_Behavior_V5", "Elephant_Behavioral_Points_Final_V5.csv")
+
+if (!file.exists(master_behavior_file)) {
+    stop("Master behavioral file not found. Please run 04_ecological_behavior_analysis_v5.R first.")
 }
 
-full_results_sf <- list()
+full_df_master <- read_csv(master_behavior_file, show_col_types = FALSE) %>%
+    mutate(behavior = factor(behavior, levels = c("Sleeping", "Resting", "Foraging", "Movement", "Bounce")))
 
-# Load existing results if any
-if (file.exists(cache_file)) {
-    cat("Loading existing HMM results from cache...\n")
-    full_results_sf <- readRDS(cache_file)
-}
+# Convert to SF and transform to environmental stack CRS
+full_results_sf <- full_df_master %>%
+    st_as_sf(coords = c("x_m", "y_m"), crs = target_crs, remove = FALSE) %>%
+    st_transform(stack_crs) %>%
+    split(.$Elephant)
 
-# Determine which elephants need processing
-to_process <- if (force_rerun) ele_ids else setdiff(ele_ids, names(full_results_sf))
-
-if (length(to_process) > 0) {
-    for (ele_id in to_process) {
-        cat("\n>>> Processing Elephant (Merging A & B):", ele_id, "\n")
-
-        # Merge A (Post) and B (Pre) datasets
-        f_list <- list.files(clean_dir, pattern = paste0("^", ele_id, ".*\\.csv$"), full.names = TRUE, recursive = TRUE)
-        if (length(f_list) == 0) {
-            cat("  Warning: No data found for", ele_id, "\n")
-            next
-        }
-
-        raw_df <- map_df(f_list, function(f) {
-            d <- read_csv(f, show_col_types = FALSE)
-
-            # Robust renaming
-            fix_col <- names(d)[grepl("fixtime|timestamp", names(d), ignore.case = TRUE)]
-            if (length(fix_col) > 0) d <- rename(d, timestamp = all_of(fix_col[1]))
-
-            lon_col <- names(d)[grepl("location\\.long|^lon$", names(d), ignore.case = TRUE)]
-            if (length(lon_col) > 0) d <- rename(d, lon = all_of(lon_col[1]))
-
-            lat_col <- names(d)[grepl("location\\.lat|^lat$", names(d), ignore.case = TRUE)]
-            if (length(lat_col) > 0) d <- rename(d, lat = all_of(lat_col[1]))
-
-            d %>% select(any_of(c("timestamp", "lon", "lat")))
-        })
-
-        df_clean <- raw_df %>%
-            # Robust parsing with multiple orders
-            mutate(timestamp = parse_date_time(timestamp, orders = c("Y-m-d H:M:S", "Y-m-d H:M", "d-m-Y H:M:S", "d-m-Y H:M", "Y/m/d H:M:S", "Y/m/d H:M"))) %>%
-            mutate(lon = as.numeric(lon), lat = as.numeric(lat)) %>%
-            filter(!is.na(lon), !is.na(lat), !is.na(timestamp)) %>%
-            arrange(timestamp) %>%
-            distinct(timestamp, .keep_all = TRUE)
-
-        if (nrow(df_clean) < 20) {
-            cat("  Warning: Insufficient data for", ele_id, "\n")
-            next
-        }
-
-        # 30-min resample
-        trk <- make_track(df_clean, lon, lat, timestamp, crs = 4326) %>%
-            transform_coords(target_crs) %>%
-            track_resample(rate = minutes(30), tolerance = minutes(5))
-
-        if (nrow(trk) < 20) {
-            cat("  Warning: Resampling resulted in too few points for", ele_id, "\n")
-            next
-        }
-
-        # HMM Prep (km units)
-        m_data <- prepData(data.frame(ID = ele_id, x = trk$x_ / 1000, y = trk$y_ / 1000, x_m = trk$x_, y_m = trk$y_, date = trk$t_), type = "UTM")
-        m_data$hour <- hour(m_data$date) + minute(m_data$date) / 60
-        m_data$cosHour <- cos(2 * pi * m_data$hour / 24)
-        m_data$sinHour <- sin(2 * pi * m_data$hour / 24)
-
-        # Jitter stationary steps
-        z_idx <- which(m_data$step <= 0 | is.na(m_data$step))
-        if (length(z_idx) > 0) m_data$step[z_idx] <- runif(length(z_idx), 0.0001, 0.005)
-        m_data <- m_data %>% filter(!is.na(step), !is.na(angle))
-
-        # Calibrated Mu: Rest(5m), Forage(50m), Move(150m) per 30-min
-        mu0 <- c(0.005, 0.05, 0.15)
-        sd0 <- c(0.004, 0.03, 0.07)
-        ang0 <- c(pi, pi, 0)
-        con0 <- c(0.2, 0.4, 0.6)
-
-        cat("  Fitting 3-state HMM (Time-dependent)...\n")
-        m_fit <- try(fitHMM(data = m_data, nbStates = 3, stepPar0 = c(mu0, sd0), anglePar0 = c(ang0, con0), formula = ~ cosHour + sinHour, verbose = 0))
-
-        # Fallback if formula fails
-        if (inherits(m_fit, "try-error")) {
-            cat("  Warning: Complex HMM failed. Trying basic model...\n")
-            m_fit <- try(fitHMM(data = m_data, nbStates = 3, stepPar0 = c(mu0, sd0), anglePar0 = c(ang0, con0), verbose = 0))
-        }
-
-        if (inherits(m_fit, "try-error")) {
-            cat("  Error: HMM fitting failed for", ele_id, "\n")
-            next
-        }
-
-        states <- viterbi(m_fit)
-        mu_est <- m_fit$mle$stepPar[1, ]
-        ord <- order(mu_est)
-        sl <- c("Resting", "Foraging", "Movement")
-
-        m_data <- m_data %>%
-            mutate(
-                behavior = factor(sl[match(states, ord)], levels = sl),
-                Elephant = ID,
-                Stage = case_when(
-                    date %within% periods$pre ~ "pre",
-                    date %within% periods$interim ~ "interim",
-                    date %within% periods$post ~ "post",
-                    TRUE ~ "other"
-                )
-            ) %>%
-            filter(Stage != "other")
-
-        # Zone Context - Elephant and Period-Specific Home Range Assignment
-        # E1, E2, E3, E4: Use KW for all periods
-        # E5, E6: Use HV for PRE, study area for INTERIM/POST
-
-        ele_sf_temp <- st_as_sf(m_data, coords = c("x_m", "y_m"), crs = target_crs)
-
-        # Determine which areas to check based on elephant and stage
-        if (ele_id %in% c("E1", "E2", "E3", "E4")) {
-            # These elephants use KW as home for all periods
-            is_home <- st_intersects(ele_sf_temp, kw_sf, sparse = FALSE)[, 1]
-            is_novel <- st_intersects(ele_sf_temp, hv_sf, sparse = FALSE)[, 1]
-            home_label <- "KW_Home"
-            novel_label <- "HV_Novel"
-            cat(sprintf("  %s: Using KW as home range for all periods\n", ele_id))
-        } else if (ele_id %in% c("E5", "E6")) {
-            # These elephants use HV for PRE, study area for INTERIM/POST
-            # For zone labeling, we'll use a simplified approach
-            is_hv <- st_intersects(ele_sf_temp, hv_sf, sparse = FALSE)[, 1]
-            is_kw <- st_intersects(ele_sf_temp, kw_sf, sparse = FALSE)[, 1]
-
-            # Label based on which area they're in
-            is_home <- is_hv # HV is their original home
-            is_novel <- is_kw # KW is novel territory
-            home_label <- "HV_Home"
-            novel_label <- "KW_Novel"
-            cat(sprintf("  %s: Using HV as original home range (PRE), study area for INTERIM/POST\n", ele_id))
-        }
-
-        m_data$Zone <- ifelse(is_home, home_label, ifelse(is_novel, novel_label, "Other"))
-
-        # Save result to list and update cache
-        full_results_sf[[ele_id]] <- st_as_sf(m_data, coords = c("x_m", "y_m"), crs = target_crs, remove = FALSE) %>% st_transform(stack_crs)
-        saveRDS(full_results_sf, cache_file)
-
-        # Export behavioral points as CSV
-        write_csv(st_drop_geometry(full_results_sf[[ele_id]]), file.path(pts_out_dir, paste0(ele_id, "_behavioral_points.csv")))
-
-        # Clean memory
-        rm(m_data, m_fit, trk, df_clean, raw_df, ele_sf_temp, states, ord)
-        gc()
-    }
-} else {
-    cat("All requested elephants are already in the cache.\n")
-}
+cat(sprintf("Loaded behavioral data for %d elephants.\n", length(full_results_sf)))
 
 
 # ==============================================================================
@@ -318,7 +168,7 @@ for (stg in names(periods)) {
         ext_bg <- terra::extract(r_stack, terra::vect(st_transform(st_as_sf(bg_pts), stack_crs))) %>% mutate(case = 0)
         if ("ID" %in% names(ext_bg)) ext_bg$ID <- NULL
 
-        for (bh in c("Resting", "Foraging", "Movement")) {
+        for (bh in c("Sleeping", "Resting", "Foraging", "Movement")) {
             # Skip if output already exists to save time/memory
             final_tif <- file.path(stg_dir, sprintf("Realized_%s_%s_%s.tif", ele_id, stg, bh))
             if (file.exists(final_tif)) {
@@ -413,7 +263,7 @@ for (stg in names(periods)) {
                         theme(panel.grid = element_blank()) +
                         coord_sf()
 
-                    ggsave(file.path(stg_dir, sprintf("Realized_RSF_%s_%s_%s.png", ele_id, stg, bh)), p_map, width = 10, height = 9, dpi = 300, bg = "white")
+                    ggsave(file.path(stg_dir, sprintf("Realized_RSF_%s_%s_%s.png", ele_id, stg, bh)), p_map, width = 10, height = 9, dpi = 300, bg = "white", create.dir = TRUE)
                 }
             }
 
@@ -448,7 +298,7 @@ all_pts_sf <- bind_rows(full_results_sf)
 
 # 1. Behavioral Trajectory Panels (Specific per Behavior & Stage)
 for (ele_id in names(full_results_sf)) {
-    for (bh in c("Resting", "Foraging", "Movement")) {
+    for (bh in c("Sleeping", "Resting", "Foraging", "Movement")) {
         cat(sprintf("  Creating Specific Trajectory Panel: %s | %s\n", ele_id, bh))
         pts_ele_bh <- all_pts_sf %>% filter(Elephant == ele_id, behavior == bh)
 
@@ -460,6 +310,7 @@ for (ele_id in names(full_results_sf)) {
                 geom_sf(data = hv_sf, fill = "gray98", color = "gray90", linewidth = 0.1) +
                 geom_sf(data = kw_sf, fill = "gray98", color = "gray90", linewidth = 0.1) +
                 geom_sf(data = p_sub, color = case_when(
+                    bh == "Sleeping" ~ "#1A1A1A",
                     bh == "Resting" ~ "#999999",
                     bh == "Foraging" ~ "#E69F00",
                     bh == "Movement" ~ "#56B4E9"
@@ -481,13 +332,13 @@ for (ele_id in names(full_results_sf)) {
                 theme = theme(plot.title = element_text(face = "bold", size = 16))
             )
 
-        ggsave(file.path(out_dir, sprintf("Panel_Trajectory_Specific_%s_%s.png", ele_id, bh)), combined_bh_traj, width = 15, height = 6, bg = "white")
+        ggsave(file.path(out_dir, sprintf("Panel_Trajectory_Specific_%s_%s.png", ele_id, bh)), combined_bh_traj, width = 15, height = 6, bg = "white", create.dir = TRUE)
     }
 }
 
 # 2. RSF Predicted Selection Panels (The "Potential" Niche from GLM)
 for (ele_id in names(full_results_sf)) {
-    for (bh in c("Resting", "Foraging", "Movement")) {
+    for (bh in c("Sleeping", "Resting", "Foraging", "Movement")) {
         cat(sprintf("  Creating RSF Selection Panel: %s | %s\n", ele_id, bh))
         rsf_panel_list <- list()
         for (stg in c("pre", "interim", "post")) {
@@ -524,13 +375,13 @@ for (ele_id in names(full_results_sf)) {
                 theme = theme(plot.title = element_text(face = "bold", size = 16))
             ) +
             plot_layout(guides = "collect") & theme(legend.position = "bottom")
-        ggsave(file.path(out_dir, sprintf("Panel_RSF_Selection_%s_%s.png", ele_id, bh)), combined_rsf, width = 15, height = 6, bg = "white")
+        ggsave(file.path(out_dir, sprintf("Panel_RSF_Selection_%s_%s.png", ele_id, bh)), combined_rsf, width = 15, height = 6, bg = "white", create.dir = TRUE)
     }
 }
 
 # 3. Behavioral Occupancy Intensity Panels (The "Realized" Niche Heatmaps)
 for (ele_id in names(full_results_sf)) {
-    for (bh in c("Resting", "Foraging", "Movement")) {
+    for (bh in c("Sleeping", "Resting", "Foraging", "Movement")) {
         cat(sprintf("  Creating Occupancy Intensity Panel: %s | %s\n", ele_id, bh))
         bh_list <- list()
         for (stg in c("pre", "interim", "post")) {
@@ -578,7 +429,7 @@ for (ele_id in names(full_results_sf)) {
                 theme = theme(plot.title = element_text(face = "bold", size = 16))
             ) +
             plot_layout(guides = "collect") & theme(legend.position = "bottom")
-        ggsave(file.path(out_dir, sprintf("Panel_Realized_Occupancy_%s_%s.png", ele_id, bh)), combined_niche, width = 15, height = 6, bg = "white")
+        ggsave(file.path(out_dir, sprintf("Panel_Realized_Occupancy_%s_%s.png", ele_id, bh)), combined_niche, width = 15, height = 6, bg = "white", create.dir = TRUE)
     }
 }
 
@@ -612,12 +463,12 @@ p1 <- ggplot(df_budget, aes(x = Stage, y = Prop, fill = behavior)) +
         position = position_stack(vjust = 0.5), color = "white", fontface = "bold", size = 4
     ) +
     facet_wrap(~Elephant) +
-    scale_fill_manual(values = c("Resting" = "#999999", "Foraging" = "#E69F00", "Movement" = "#56B4E9")) +
+    scale_fill_manual(values = c("Sleeping" = "#1A1A1A", "Resting" = "#969696", "Foraging" = "#D95F02", "Movement" = "#377EB8", "Bounce" = "#E41A1C")) +
     labs(title = "Behavioral Time Budget Shift", x = "Period", y = "Proportion", fill = "behavior") +
     theme_minimal() +
     theme(panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
 
-ggsave(file.path(out_dir, "01_Behavioral_Time_Budget_Shift.png"), p1, width = 12, height = 8, bg = "white")
+ggsave(file.path(out_dir, "01_Behavioral_Time_Budget_Shift.png"), p1, width = 12, height = 8, bg = "white", create.dir = TRUE)
 
 # --- Graph 2: Seasonal Behavioral Usage ---
 cat("  Plotting: Seasonal_Behavioral_Usage.png\n")
@@ -629,7 +480,7 @@ df_seasonal <- df_all %>%
 p2 <- ggplot(df_seasonal, aes(x = Season, y = Prop, fill = behavior)) +
     geom_bar(stat = "identity", position = "dodge") +
     facet_grid(Elephant ~ Stage) +
-    scale_fill_manual(values = c("Resting" = "#999999", "Foraging" = "#E69F00", "Movement" = "#56B4E9")) +
+    scale_fill_manual(values = c("Sleeping" = "#1A1A1A", "Resting" = "#969696", "Foraging" = "#D95F02", "Movement" = "#377EB8", "Bounce" = "#E41A1C")) +
     labs(
         title = "Seasonal Behavioral Usage", subtitle = "Comparison across 4 seasons (Spring, Summer, Autumn, Winter)",
         x = "Season", y = "Prop", fill = "behavior"
@@ -637,7 +488,7 @@ p2 <- ggplot(df_seasonal, aes(x = Season, y = Prop, fill = behavior)) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave(file.path(out_dir, "02_Seasonal_Behavioral_Usage.png"), p2, width = 14, height = 9, bg = "white")
+ggsave(file.path(out_dir, "02_Seasonal_Behavioral_Usage.png"), p2, width = 14, height = 9, bg = "white", create.dir = TRUE)
 
 # --- Graph 3: Ghost Fence & Interaction Trend ---
 cat("  Plotting: Ghost_Fence_Trend.png\n")
@@ -687,7 +538,7 @@ p3 <- ggplot(df_int, aes(x = Month, y = Events, color = Type)) +
     geom_line(linewidth = 1.2) +
     geom_point(size = 2) +
     facet_wrap(~Elephant, scales = "free_y") +
-    scale_color_manual(values = c("Resting" = "#999999", "Foraging" = "#E69F00", "Movement" = "#56B4E9", "Bounce" = "#8B4513")) +
+    scale_color_manual(values = c("Sleeping" = "#1A1A1A", "Resting" = "#969696", "Foraging" = "#D95F02", "Movement" = "#377EB8", "Bounce" = "#E41A1C")) +
     scale_x_date(date_breaks = "1 month", date_labels = "%b %Y") +
     labs(
         title = "Ghost Fence Dynamics: Monthly Trends (Post-Removal)",
@@ -702,7 +553,7 @@ p3 <- ggplot(df_int, aes(x = Month, y = Events, color = Type)) +
         legend.title = element_text(face = "bold")
     )
 
-ggsave(file.path(out_dir, "03_Ghost_Fence_Trend.png"), p3, width = 14, height = 8, bg = "white")
+ggsave(file.path(out_dir, "03_Ghost_Fence_Trend.png"), p3, width = 14, height = 8, bg = "white", create.dir = TRUE)
 
 # Microhabitat Analysis
 if (length(master_extractions) > 0) {
@@ -712,10 +563,10 @@ if (length(master_extractions) > 0) {
     p_box <- ggplot(df_box, aes(x = behavior, y = Distance, fill = behavior)) +
         geom_boxplot(outlier.alpha = 0.05) +
         facet_grid(Veg_Type ~ Stage, scales = "free_y") +
-        scale_fill_manual(values = c("Resting" = "#999999", "Foraging" = "#E69F00", "Movement" = "#56B4E9")) +
+        scale_fill_manual(values = c("Sleeping" = "#1A1A1A", "Resting" = "#969696", "Foraging" = "#D95F02", "Movement" = "#377EB8", "Bounce" = "#E41A1C")) +
         theme_minimal(base_size = 9) +
         theme(strip.text.y = element_text(angle = 0))
-    ggsave(file.path(out_dir, "04_Microhabitat_BACI.png"), p_box, width = 12, height = 18, bg = "white")
+    ggsave(file.path(out_dir, "04_Microhabitat_BACI.png"), p_box, width = 12, height = 18, bg = "white", create.dir = TRUE)
 }
 
 write_csv(bind_rows(accuracy_report), file.path(out_dir, "Accuracy_Summary.csv"))
@@ -748,7 +599,7 @@ for (ele_id in names(full_results_sf)) {
                 if (stg == "pre") geom_sf(data = fence_sf %>% st_transform(4326), color = "black", linetype = "dashed", linewidth = 1.1)
             } +
             # Scales & Styling
-            scale_color_manual(values = c("Foraging" = "#E69F00", "Movement" = "#56B4E9", "Resting" = "#999999")) +
+            scale_color_manual(values = c("Sleeping" = "#1A1A1A", "Resting" = "#969696", "Foraging" = "#D95F02", "Movement" = "#377EB8", "Bounce" = "#E41A1C")) +
             scale_x_continuous(labels = function(x) paste0(round(x, 2), "°E")) +
             scale_y_continuous(labels = function(y) paste0(abs(round(y, 2)), "°S")) +
             labs(
@@ -769,7 +620,7 @@ for (ele_id in names(full_results_sf)) {
             ) +
             coord_sf()
 
-        ggsave(file.path(out_dir, sprintf("Journal_Trajectory_%s_%s.png", ele_id, stg)), p_journal, width = 10, height = 10, dpi = 300)
+        ggsave(file.path(out_dir, sprintf("Journal_Trajectory_%s_%s.png", ele_id, stg)), p_journal, width = 10, height = 10, dpi = 300, create.dir = TRUE)
     }
 }
 

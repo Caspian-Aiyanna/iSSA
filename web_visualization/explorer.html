@@ -37,6 +37,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Overview</a></li>
                 <li><a href="methodology.html" class="nav-link">Methodology</a></li>
+                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="explorer.html" class="nav-link active">Trajectory Explorer</a></li>
                 <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
                 <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
@@ -54,9 +55,11 @@
                     This interactive map shows elephant movement trajectories color-coded by behavioral state:
                 </p>
                 <ul class="info-list">
-                    <li><span class="color-dot resting"></span> Resting (Blue)</li>
+                    <li><span class="color-dot sleeping"></span> Sleeping (Grey)</li>
+                    <li><span class="color-dot resting"></span> Low-energy (Orange)</li>
                     <li><span class="color-dot foraging"></span> Foraging (Green)</li>
-                    <li><span class="color-dot movement"></span> Movement (Orange)</li>
+                    <li><span class="color-dot movement"></span> Movement (Blue)</li>
+                    <li><span class="color-dot bounce"></span> Bounce (Red)</li>
                 </ul>
             </div>
 
@@ -106,22 +109,32 @@
                 <div class="behavior-distribution">
                     <h4 class="distribution-title">Time Budget Distribution</h4>
                     <div class="distribution-bar">
-                        <div class="bar-segment resting" style="width: 33.3%"></div>
-                        <div class="bar-segment foraging" style="width: 33.3%"></div>
-                        <div class="bar-segment movement" style="width: 33.4%"></div>
+                        <div class="bar-segment sleeping" style="width: 20%"></div>
+                        <div class="bar-segment resting" style="width: 20%"></div>
+                        <div class="bar-segment foraging" style="width: 20%"></div>
+                        <div class="bar-segment movement" style="width: 20%"></div>
+                        <div class="bar-segment bounce" style="width: 20%"></div>
                     </div>
                     <div class="distribution-legend-grid">
                         <div class="legend-item">
+                            <span class="legend-color sleeping"></span>
+                            <span class="legend-label">Sleeping: <strong id="sleeping-pct">20%</strong></span>
+                        </div>
+                        <div class="legend-item">
                             <span class="legend-color resting"></span>
-                            <span class="legend-label">Resting: <strong id="resting-pct">33%</strong></span>
+                            <span class="legend-label">Low-energy: <strong id="resting-pct">20%</strong></span>
                         </div>
                         <div class="legend-item">
                             <span class="legend-color foraging"></span>
-                            <span class="legend-label">Foraging: <strong id="foraging-pct">33%</strong></span>
+                            <span class="legend-label">Foraging: <strong id="foraging-pct">20%</strong></span>
                         </div>
                         <div class="legend-item">
                             <span class="legend-color movement"></span>
-                            <span class="legend-label">Movement: <strong id="movement-pct">34%</strong></span>
+                            <span class="legend-label">Movement: <strong id="movement-pct">20%</strong></span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color bounce"></span>
+                            <span class="legend-label">Bounce: <strong id="bounce-pct">20%</strong></span>
                         </div>
                     </div>
                 </div>
@@ -236,9 +249,14 @@
                 <h3 class="panel-title">Behavioral Filters</h3>
                 <div class="behavior-filters-grid">
                     <label class="filter-checkbox">
-                        <input type="checkbox" checked data-behavior="Resting">
+                        <input type="checkbox" checked data-behavior="Sleeping">
+                        <span class="checkbox-custom sleeping"></span>
+                        <span class="filter-label">Sleeping</span>
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-behavior="Low-energy">
                         <span class="checkbox-custom resting"></span>
-                        <span class="filter-label">Resting</span>
+                        <span class="filter-label">Low-energy</span>
                     </label>
                     <label class="filter-checkbox">
                         <input type="checkbox" checked data-behavior="Foraging">
@@ -249,6 +267,11 @@
                         <input type="checkbox" checked data-behavior="Movement">
                         <span class="checkbox-custom movement"></span>
                         <span class="filter-label">Movement</span>
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" checked data-behavior="Bounce">
+                        <span class="checkbox-custom bounce"></span>
+                        <span class="filter-label">Bounce</span>
                     </label>
                 </div>
             </div>

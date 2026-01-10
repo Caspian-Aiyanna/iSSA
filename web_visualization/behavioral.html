@@ -26,6 +26,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Overview</a></li>
                 <li><a href="methodology.html" class="nav-link">Methodology</a></li>
+                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="explorer.html" class="nav-link">Trajectory Explorer</a></li>
                 <li><a href="behavioral.html" class="nav-link active">Behavioral Analysis</a></li>
                 <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
@@ -75,18 +76,40 @@
                         <div class="stat-value" id="duration-days">-</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">Resting %</div>
+                        <div class="stat-label">
+                            <span class="color-dot resting"></span>Low-energy %
+                        </div>
                         <div class="stat-value" id="resting-pct">-</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">Foraging %</div>
+                        <div class="stat-label">
+                            <span class="color-dot sleeping"></span>Sleeping %
+                        </div>
+                        <div class="stat-value" id="sleeping-pct">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="color-dot foraging"></span>Foraging %
+                        </div>
                         <div class="stat-value" id="foraging-pct">-</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">Movement %</div>
+                        <div class="stat-label">
+                            <span class="color-dot movement"></span>Movement %
+                        </div>
                         <div class="stat-value" id="movement-pct">-</div>
                     </div>
-                    <div class="stat-item" style="grid-column: span 2;">
+                    <div class="stat-item">
+                        <div class="stat-label">
+                            <span class="color-dot bounce"></span>Bounce %
+                        </div>
+                        <div class="stat-value" id="bounce-pct">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Rest/Forage Ratio</div>
+                        <div class="stat-value" id="rest-forage-ratio">-</div>
+                    </div>
+                    <div class="stat-item">
                         <div class="stat-label">Date Range</div>
                         <div class="stat-value" style="font-size: 0.75rem;" id="date-range">-</div>
                     </div>

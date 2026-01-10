@@ -188,9 +188,11 @@ window.elephantPlatform = {
 
     // Behavioral color mapping
     behaviorColors: {
-        'Resting': '#3b82f6',
-        'Foraging': '#10b981',
-        'Movement': '#f59e0b'
+        'Sleeping': '#999999',
+        'Low-energy': '#E69F00',
+        'Foraging': '#10B981',
+        'Movement': '#56B4E9',
+        'Bounce': '#E41A1C'
     },
 
     // Elephant metadata

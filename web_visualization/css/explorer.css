@@ -165,32 +165,44 @@
     transition: all var(--transition-base);
 }
 
+.checkbox-custom.sleeping {
+    border-color: #999999;
+}
+
 .checkbox-custom.resting {
-    border-color: var(--color-resting);
+    border-color: #E69F00;
 }
 
 .checkbox-custom.foraging {
-    border-color: var(--color-foraging);
+    border-color: #10B981;
 }
 
 .checkbox-custom.movement {
-    border-color: var(--color-movement);
+    border-color: #56B4E9;
 }
 
-.filter-checkbox input:checked+.checkbox-custom {
-    background: currentColor;
+.checkbox-custom.bounce {
+    border-color: #E41A1C;
+}
+
+.filter-checkbox input:checked+.checkbox-custom.sleeping {
+    background: #999999;
 }
 
 .filter-checkbox input:checked+.checkbox-custom.resting {
-    background: var(--color-resting);
+    background: #E69F00;
 }
 
 .filter-checkbox input:checked+.checkbox-custom.foraging {
-    background: var(--color-foraging);
+    background: #10B981;
 }
 
 .filter-checkbox input:checked+.checkbox-custom.movement {
-    background: var(--color-movement);
+    background: #56B4E9;
+}
+
+.filter-checkbox input:checked+.checkbox-custom.bounce {
+    background: #E41A1C;
 }
 
 .filter-checkbox input:checked+.checkbox-custom::after {
@@ -268,16 +280,24 @@
     transition: width var(--transition-base);
 }
 
+.bar-segment.sleeping {
+    background: #999999;
+}
+
 .bar-segment.resting {
-    background: var(--color-resting);
+    background: #E69F00;
 }
 
 .bar-segment.foraging {
-    background: var(--color-foraging);
+    background: #10B981;
 }
 
 .bar-segment.movement {
-    background: var(--color-movement);
+    background: #56B4E9;
+}
+
+.bar-segment.bounce {
+    background: #E41A1C;
 }
 
 .distribution-legend-grid {
@@ -299,16 +319,24 @@
     border-radius: 2px;
 }
 
+.legend-color.sleeping {
+    background: #999999;
+}
+
 .legend-color.resting {
-    background: var(--color-resting);
+    background: #E69F00;
 }
 
 .legend-color.foraging {
-    background: var(--color-foraging);
+    background: #10B981;
 }
 
 .legend-color.movement {
-    background: var(--color-movement);
+    background: #56B4E9;
+}
+
+.legend-color.bounce {
+    background: #E41A1C;
 }
 
 .legend-label {
@@ -581,16 +609,24 @@
     border-radius: 50%;
 }
 
+.color-dot.sleeping {
+    background: #999999;
+}
+
 .color-dot.resting {
-    background: var(--color-resting);
+    background: #E69F00;
 }
 
 .color-dot.foraging {
-    background: var(--color-foraging);
+    background: #10B981;
 }
 
 .color-dot.movement {
-    background: var(--color-movement);
+    background: #56B4E9;
+}
+
+.color-dot.bounce {
+    background: #E41A1C;
 }
 
 .availability-grid {

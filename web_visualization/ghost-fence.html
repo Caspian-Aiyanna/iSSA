@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost Fence Analysis | Elephant Movement Visualization</title>
+    <meta name="description"
+        content="Detailed analysis of the Ghost Fence effect on elephants E3 and E4 post-fence removal.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet & Chart.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/ghost-fence.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+                <span class="brand-text">Elephant Movement Analysis</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Overview</a></li>
+                <li><a href="methodology.html" class="nav-link">Methodology</a></li>
+                <li><a href="ghost-fence.html" class="nav-link active">Ghost Fence</a></li>
+                <li><a href="explorer.html" class="nav-link">Trajectory Explorer</a></li>
+                <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
+                <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="ghost-fence-container">
+        <!-- Hero Section -->
+        <header class="page-header">
+            <div class="header-content">
+                <span class="badge badge-accent">Interactive Case Study</span>
+                <h1>The <span style="color: #ff0000;" class="gradient-text">Ghost Fence</span> Effect</h1>
+                <p>Tracking the psychological barrier and gradual adaptation of elephants E3 and E4 following the
+                    removal of physical boundaries.</p>
+            </div>
+        </header>
+
+        <!-- Dynamic Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Left: Comparison Maps -->
+            <section class="map-comparison-section card">
+                <div class="card-header">
+                    <h2>Spatial Adaptation Overview</h2>
+                    <div class="map-controls">
+                        <div class="control-group">
+                            <label>Period:</label>
+                            <select id="period-sync" class="glass-select">
+                                <option value="pre">Pre-Removal (Baseline)</option>
+                                <option value="interim">Interim Phase (Ghost Effect)</option>
+                                <option value="post">Post-Removal (Expansion)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label class="toggle-label mini">
+                                <input type="checkbox" id="show-crossings">
+                                <span>Show Crossings Only</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="dual-map-container">
+                        <div class="map-wrapper" id="map-e3-container">
+                            <div class="map-label">Bukela (E3)</div>
+                            <div id="map-e3" class="map-instance"></div>
+                        </div>
+                        <div class="map-wrapper" id="map-e4-container">
+                            <div class="map-label">Half Moon (E4)</div>
+                            <div id="map-e4" class="map-instance"></div>
+                        </div>
+                    </div>
+
+                    <div class="map-legend">
+                        <div class="legend-group">
+                            <span class="legend-group-title">Key Events</span>
+                            <div class="legend-item"><span class="dot bounce"></span> Bounce Event (Point)</div>
+                            <div class="legend-item"><span class="line bounce-path"></span> Bounce Path (Segment)</div>
+                            <div class="legend-item"><span class="line crossing"></span> Territory Expansion or
+                                Crossings</div>
+                        </div>
+                        <div class="legend-group">
+                            <span class="legend-group-title">Buffer Activity (200m)</span>
+                            <div class="legend-item"><span class="line foraging"></span> Foraging Path</div>
+                            <div class="legend-item"><span class="line movement"></span> Movement Path</div>
+                            <div class="legend-item"><span class="line low-energy"></span> Low-energy Path</div>
+                            <div class="legend-item"><span class="line sleeping"></span> Sleeping Path</div>
+                        </div>
+                        <div class="legend-group">
+                            <span class="legend-group-title">Reference</span>
+                            <div class="legend-item"><span class="line fence-line"></span> Boundary / Fence Line</div>
+                        </div>
+                    </div>
+
+                    <div class="behavior-definitions">
+                        <h4>Behavioral Class Definitions</h4>
+                        <div class="def-grid">
+                            <div class="def-item def-bounce">
+                                <span class="def-term bounce-term">Bounce</span>
+                                <p class="def-desc">Sharp directional changes (>90°) near boundary indicating
+                                    hesitation/refusal to cross.</p>
+                            </div>
+                            <div class="def-item def-crossing">
+                                <span class="def-term crossing-term">Crossing</span>
+                                <p class="def-desc">Direct, sustained trajectory bridging the former fence line into
+                                    novel territory.</p>
+                            </div>
+                            <div class="def-item def-foraging">
+                                <span class="def-term foraging-term">Foraging</span>
+                                <p class="def-desc">Area-restricted search (low speed, high turning angle and ~60 meters
+                                    per 30 minutes) for resource
+                                    consumption.</p>
+                            </div>
+                            <div class="def-item def-movement">
+                                <span class="def-term movement-term">Movement</span>
+                                <p class="def-desc">High-speed, directional travel between patches with low turning
+                                    angles and ~120 meters per 30 minutes.</p>
+                            </div>
+                            <div class="def-item def-low-energy">
+                                <span class="def-term low-energy-term">Low-energy</span>
+                                <p class="def-desc">Stationary or very slow activity (~8 meters per 30 minutes),
+                                    representing resting or
+                                    standing.</p>
+                            </div>
+                            <div class="def-item def-sleeping">
+                                <span class="def-term sleeping-term">Sleeping</span>
+                                <p class="def-desc">Prolonged stationary periods with minimal displacement (~1.2 meters
+                                    per 30 minutes).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Behavioral Interaction Panel -->
+            <section class="analytics-panel">
+                <div class="card stat-summary">
+                    <h3>Fence Interaction Profile</h3>
+                    <div class="interaction-stats">
+                        <div class="big-stat">
+                            <span class="stat-label">Total "Bounce" Events</span>
+                            <span class="stat-value" id="total-bounces">0</span>
+                        </div>
+                        <div class="big-stat">
+                            <span class="stat-label">Total Crossings</span>
+                            <span class="stat-value" id="total-crossings">0</span>
+                        </div>
+                        <div class="big-stat">
+                            <span class="stat-label">Fence Avoidance %</span>
+                            <span class="stat-value" id="avoidance-index">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="individual-stats-container">
+                        <!-- Elephant E3 Stats -->
+                        <div class="elephant-stat-card">
+                            <div class="elephant-mini-profile">
+                                <img src="elephants/Bukela_2.jpg" alt="E3 Profile">
+                                <div class="mini-profile-info">
+                                    <h4>Bukela (E3)</h4>
+                                    <span class="stat-label-mini">Buffer Behaviors</span>
+                                </div>
+                            </div>
+                            <div id="e3-stats-grid" class="behavior-stats-grid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Elephant E4 Stats -->
+                        <div class="elephant-stat-card">
+                            <div class="elephant-mini-profile">
+                                <img src="elephants/Half Moon_2.jpg.png" alt="E4 Profile">
+                                <div class="mini-profile-info">
+                                    <h4>Half Moon (E4)</h4>
+                                    <span class="stat-label-mini">Buffer Behaviors</span>
+                                </div>
+                            </div>
+                            <div id="e4-stats-grid" class="behavior-stats-grid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-mini-container">
+                        <canvas id="bounce-trend-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Animated Interaction Spotlight -->
+                <div class="card animation-card">
+                    <div class="card-header">
+                        <h3>E4 Interaction Spotlight</h3>
+                        <div class="animation-badge">INTERIM PHASE</div>
+                    </div>
+                    <p class="card-desc">Detailed 48-hour sequence showing E4 encountering the 'Ghost Fence' in the
+                        interim period.</p>
+                    <div class="animation-container" id="interaction-animation">
+                        <!-- Playback Controls -->
+                        <div class="animation-controls">
+                            <button id="play-btn" class="btn-play">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                            </button>
+                            <input type="range" id="animation-slider" class="glass-range" min="0" max="100" value="0">
+                            <span id="timestamp-label" class="timestamp">Step 0</span>
+                        </div>
+                        <div id="animation-map" class="map-instance mini-map"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Descriptive Narrative Section -->
+        <section class="narrative-section card">
+            <div class="narrative-grid">
+                <div class="narrative-text">
+                    <h3>Insights from the Interim Phase</h3>
+                    <p>During the <strong>Interim Period</strong> (Dec 9, 2023 - Feb 9, 2024), we observe a fascinating
+                        phenomenon: the physical fence has been removed, but the elephants' spatial memory continues to
+                        dictate their movement patterns.</p>
+                    <p><strong>Elephant E4 (Half Moon)</strong> exhibited a unique "Ghost Fence" interaction. Even with
+                        the path ostensibly open, her trajectory shows repeated "bounces" near the old boundary before
+                        she finally crossed into the novel territory in the Post Phase.</p>
+                    <p>Use the <strong>"Show Crossings Only"</strong> toggle to identify exactly when and where these
+                        elephants breached the former boundary into the newly accessible zones.</p>
+                </div>
+                <div class="narrative-visual">
+                    <div class="insight-card">
+                        <h4>Key Metric: Fence Buffer Proximity</h4>
+                        <div class="proximity-indicator">
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="proximity-bar" style="width: 15%;"></div>
+                            </div>
+                            <span id="proximity-text">Low Exploration (Interim)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Elephant Movement Analysis Platform. Research data visualization.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/ghost-fence.js"></script>
+</body>
+
+</html>
