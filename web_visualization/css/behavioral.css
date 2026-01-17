@@ -73,7 +73,9 @@
     color: white;
 }
 
-.elephant-btn[data-elephant="ALL"] {
+.elephant-btn[data-elephant="ALL"],
+.elephant-btn[data-elephant="MALES"],
+.elephant-btn[data-elephant="FEMALES"] {
     grid-column: 1 / -1;
 }
 

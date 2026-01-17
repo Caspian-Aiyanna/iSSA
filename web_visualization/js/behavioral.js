@@ -72,8 +72,8 @@ async function loadBehavioralData(elephant, period) {
     showLoading(true);
 
     try {
-        if (elephant === 'ALL') {
-            await loadAllElephants(period);
+        if (elephant === 'ALL' || elephant === 'MALES' || elephant === 'FEMALES') {
+            await loadAllElephants(period, elephant);
         } else {
             await loadSingleElephant(elephant, period);
         }
@@ -147,16 +147,25 @@ async function loadSingleElephant(elephant, period) {
     });
 }
 
-// Load all elephants data
-async function loadAllElephants(period) {
-    const cacheKey = `ALL_${period}`;
+// Load aggregate data (All, Males, or Females)
+async function loadAllElephants(period, mode = 'ALL') {
+    const cacheKey = `${mode}_${period}`;
 
     // Check high-level population cache first
     if (populationCache) {
-        console.log(`Using population cache for period: ${period}`);
+        console.log(`Using population cache for ${mode} period: ${period}`);
         let filteredData = populationCache;
+
+        // Filter by sex if requested
+        if (mode === 'MALES') {
+            filteredData = populationCache.filter(row => ['E1', 'E2', 'E6'].includes(row.elephant_id));
+        } else if (mode === 'FEMALES') {
+            filteredData = populationCache.filter(row => ['E3', 'E4', 'E5'].includes(row.elephant_id));
+        }
+
+        // Filter by period
         if (period !== 'ALL') {
-            filteredData = populationCache.filter(row => {
+            filteredData = filteredData.filter(row => {
                 const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
                 return rowStage === period.toUpperCase();
             });
@@ -164,7 +173,7 @@ async function loadAllElephants(period) {
 
         const summary = calculateSummary(filteredData);
         behavioralData = {
-            elephant: 'ALL',
+            elephant: mode,
             period: period,
             data: filteredData,
             summary: summary
@@ -174,7 +183,9 @@ async function loadAllElephants(period) {
         return;
     }
 
-    const elephants = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
+    const elephants = mode === 'MALES' ? ['E1', 'E2', 'E6'] :
+        mode === 'FEMALES' ? ['E3', 'E4', 'E5'] :
+            ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
     let allData = [];
 
     const loadPromises = elephants.map(elephant => {
@@ -200,23 +211,17 @@ async function loadAllElephants(period) {
             allData = allData.concat(data);
         });
 
-        // Store in global population cache
-        populationCache = allData;
-
-        // Apply period filter for current view
-        let filteredData = allData;
-        if (period !== 'ALL') {
-            filteredData = allData.filter(row => {
-                const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
-                return rowStage === period.toUpperCase();
-            });
+        // Only populate full population cache if we loaded everyone
+        if (mode === 'ALL') {
+            populationCache = allData;
         }
 
-        const summary = calculateSummary(filteredData);
+        const summary = calculateSummary(allData);
+
         behavioralData = {
-            elephant: 'ALL',
+            elephant: mode,
             period: period,
-            data: filteredData,
+            data: allData,
             summary: summary
         };
 
@@ -374,6 +379,8 @@ function updateElephantProfile() {
         'E4': { name: 'Half Moon (E4)', image: 'Half_moon_1.jpg', preRange: 'Kariega West', badge: 'KW → Kariega Game Reserve' },
         'E5': { name: 'Beauty (E5)', image: 'Beauty_1.jpg', preRange: 'Harvestvale', badge: 'HV → Kariega Game Reserve' },
         'E6': { name: 'Balu (E6)', image: 'Balu_1.jpg', preRange: 'Harvestvale', badge: 'HV → Kariega Game Reserve' },
+        'MALES': { name: 'All Males (E1, E2, E6)', image: 'elephant_main.jpg', preRange: 'Both Ranges', badge: 'Sex Aggregate' },
+        'FEMALES': { name: 'All Females (E3, E4, E5)', image: 'elephant_main.jpg', preRange: 'Both Ranges', badge: 'Sex Aggregate' },
         'ALL': { name: 'All Elephants', image: 'elephant_main.jpg', preRange: 'Both Ranges', badge: 'Combined Data' }
     };
 
@@ -390,7 +397,8 @@ function updateElephantProfile() {
         if (currentPeriod === 'PRE') {
             homeRange = elephant.preRange;
         } else if (currentPeriod === 'INTERIM' || currentPeriod === 'POST') {
-            homeRange = currentElephant === 'ALL' ? 'Both Ranges' : 'Kariega Game Reserve';
+            const aggTypes = ['ALL', 'MALES', 'FEMALES'];
+            homeRange = aggTypes.includes(currentElephant) ? 'Both Ranges' : 'Kariega Game Reserve';
         } else {
             homeRange = 'Multiple Ranges';
         }
@@ -967,10 +975,21 @@ async function renderPeriodComparison() {
     };
 
     // PERFORMANCE: Use populationCache if available for faster aggregate views
-    if (currentElephant === 'ALL' && populationCache) {
+    const isAggMode = currentElephant === 'ALL' || currentElephant === 'MALES' || currentElephant === 'FEMALES';
+    if (isAggMode && populationCache) {
         console.log('Using population cache for BACI Comparison');
         periods.forEach(period => {
-            let filtered = populationCache.filter(row => {
+            let filtered = populationCache;
+
+            // Filter by sex subset
+            if (currentElephant === 'MALES') {
+                filtered = filtered.filter(row => ['E1', 'E2', 'E6'].includes(row.elephant_id));
+            } else if (currentElephant === 'FEMALES') {
+                filtered = filtered.filter(row => ['E3', 'E4', 'E5'].includes(row.elephant_id));
+            }
+
+            // Filter by period
+            filtered = filtered.filter(row => {
                 const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
                 return rowStage === period;
             });
@@ -1006,7 +1025,10 @@ async function renderPeriodComparison() {
         return;
     }
 
-    const elephantsToLoad = currentElephant === 'ALL' ? ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'] : [currentElephant];
+    const elephantsToLoad = currentElephant === 'ALL' ? ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'] :
+        currentElephant === 'MALES' ? ['E1', 'E2', 'E6'] :
+            currentElephant === 'FEMALES' ? ['E3', 'E4', 'E5'] :
+                [currentElephant];
 
     const loadPromises = elephantsToLoad.map(elephant => {
         const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
@@ -1165,7 +1187,7 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
                 },
                 title: {
                     display: true,
-                    text: `Time Budget Comparison - ${elephantId === 'ALL' ? 'All Elephants' : elephantId} ${currentPeriod !== 'ALL' ? `(Focal: ${currentPeriod})` : ''}`,
+                    text: `Time Budget Comparison - ${elephantId === 'ALL' ? 'All Elephants' : (elephantId === 'MALES' ? 'All Males' : (elephantId === 'FEMALES' ? 'All Females' : elephantId))} ${currentPeriod !== 'ALL' ? `(Focal: ${currentPeriod})` : ''}`,
                     color: '#f1f5f9',
                     font: {
                         size: 20,
