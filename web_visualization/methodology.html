@@ -401,6 +401,138 @@
                     </div>
                 </div>
 
+                <!-- Environmental Variable Catalog -->
+                <div class="overview-card" style="margin-bottom: var(--spacing-2xl);">
+                    <h2 style="margin-bottom: var(--spacing-xl); text-align: center;">Environmental Variable Catalog
+                    </h2>
+                    <p
+                        style="color: var(--color-text-secondary); text-align: center; margin-bottom: var(--spacing-2xl); max-width: 700px; margin-left: auto; margin-right: auto;">
+                        The iSSA and RSF models utilize 39 high-resolution environmental covariates. All datasets were
+                        orthorectified and resampled to a consistent 30m spatial resolution and projected to UTM Zone
+                        35S.
+                    </p>
+
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-lg);">
+                        <!-- Topography -->
+                        <div
+                            style="padding: var(--spacing-lg); background: rgba(0,0,0,0.2); border-radius: var(--radius-md); border-top: 3px solid #56B4E9;">
+                            <h4 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">Topography &
+                                Terrain</h4>
+                            <p
+                                style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+                                Procured from NASA SRTM (30m)</p>
+                            <ul
+                                style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.6; list-style: none;">
+                                <li>• Elevation.tif (DEM)</li>
+                                <li>• Slope.tif (Gradient)</li>
+                                <li>• TRI.tif (Ruggedness Index)</li>
+                                <li>• Cos_aspect.tif (Cos-Aspect)</li>
+                            </ul>
+                        </div>
+
+                        <!-- Vegetation & Productivity -->
+                        <div
+                            style="padding: var(--spacing-lg); background: rgba(0,0,0,0.2); border-radius: var(--radius-md); border-top: 3px solid #E69F00;">
+                            <h4 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">Primary
+                                Productivity</h4>
+                            <p
+                                style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+                                MODIS MOD13Q1 / Sentinel-2</p>
+                            <ul
+                                style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.6; list-style: none;">
+                                <li>• NDVI_2024.tif (Veg. Index)</li>
+                                <li>• EVI_2024.tif (Enhanced Veg.)</li>
+                                <li>• LST_2024.tif (Land Surf. Temp)</li>
+                                <li>• LandCover.tif (LULC Classes)</li>
+                            </ul>
+                        </div>
+
+                        <!-- Climate -->
+                        <div
+                            style="padding: var(--spacing-lg); background: rgba(0,0,0,0.2); border-radius: var(--radius-md); border-top: 3px solid #10B981;">
+                            <h4 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">Bioclimatic
+                                Records</h4>
+                            <p
+                                style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+                                WorldClim v2.1 (Downscaled)</p>
+                            <ul
+                                style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.6; list-style: none;">
+                                <li>• bio1.tif to bio19.tif (Temp/Precip)</li>
+                                <li>• (e.g., Annual Mean Temp, Precipitation seasonality, etc.)</li>
+                            </ul>
+                        </div>
+
+                        <!-- Proximity -->
+                        <div
+                            style="padding: var(--spacing-lg); background: rgba(0,0,0,0.2); border-radius: var(--radius-md); border-top: 3px solid #F59E0B;">
+                            <h4 style="color: var(--color-text-primary); margin-bottom: var(--spacing-sm);">Distance
+                                Covariates</h4>
+                            <p
+                                style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+                                Euclidean Distance (GIS Layers)</p>
+                            <ul
+                                style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.6; list-style: none;">
+                                <li>• dist_water_Sources.tif</li>
+                                <li>• dist_Valley_Thicket.tif</li>
+                                <li>• dist_Albany_thckets.tif</li>
+                                <li>• dist_Grassland_Thicket.tif</li>
+                                <li>• (+ 7 other vegetation distances)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Full Exact Raster Names List -->
+                    <div
+                        style="margin-top: var(--spacing-xl); padding: var(--spacing-lg); background: rgba(0,0,0,0.3); border-radius: var(--radius-md);">
+                        <h5
+                            style="color: var(--color-text-primary); margin-bottom: var(--spacing-md); font-size: 0.875rem;">
+                            Exact Layer Manifest (39 Layers)</h5>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--color-text-tertiary);">
+                            <div>Elevation.tif</div>
+                            <div>Slope.tif</div>
+                            <div>TRI.tif</div>
+                            <div>Cos_aspect.tif</div>
+                            <div>NDVI_2024.tif</div>
+                            <div>EVI_2024.tif</div>
+                            <div>LST_2024.tif</div>
+                            <div>LandCover.tif</div>
+                            <div>ForestCover.tif</div>
+                            <div>bio1.tif</div>
+                            <div>bio2.tif</div>
+                            <div>bio3.tif</div>
+                            <div>bio4.tif</div>
+                            <div>bio5.tif</div>
+                            <div>bio6.tif</div>
+                            <div>bio7.tif</div>
+                            <div>bio8.tif</div>
+                            <div>bio9.tif</div>
+                            <div>bio10.tif</div>
+                            <div>bio11.tif</div>
+                            <div>bio12.tif</div>
+                            <div>bio13.tif</div>
+                            <div>bio15.tif</div>
+                            <div>bio16.tif</div>
+                            <div>bio17.tif</div>
+                            <div>bio18.tif</div>
+                            <div>bio19.tif</div>
+                            <div>dist_Albany_thckets.tif</div>
+                            <div>dist_Alexandria_grassland.tif</div>
+                            <div>dist_Alluvial_plains.tif</div>
+                            <div>dist_Estuary_wetlands.tif</div>
+                            <div>dist_False_fynbos.tif</div>
+                            <div>dist_Freshwater_wetland.tif</div>
+                            <div>dist_Grassland_Thicket.tif</div>
+                            <div>dist_Gymnosporia_srubveld.tif</div>
+                            <div>dist_Shrub_Forest.tif</div>
+                            <div>dist_Valley_Thicket.tif</div>
+                            <div>dist_water_Sources.tif</div>
+                            <div>&nbsp;</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- References Section -->
                 <div class="overview-card" id="cite">
                     <h2 style="margin-bottom: var(--spacing-xl);">References</h2>

@@ -8,7 +8,8 @@ let currentPeriod = 'PRE';
 let currentAnalysis = 'time-budget';
 let charts = {};
 let heatmapInstance = null;
-let dataCache = {}; // Cache for CSV data
+let dataCache = {}; // Cache for CSV data (Individual and Period-specific)
+let populationCache = null; // High-level cache for ALL elephants (contains all stages)
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -117,8 +118,8 @@ async function loadSingleElephant(elephant, period) {
                 // Filter by period if not ALL
                 if (period !== 'ALL') {
                     data = data.filter(row => {
-                        const rowStage = (row.Stage || row.stage || '').toUpperCase();
-                        return rowStage === period.toUpperCase();
+                        const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
+                        return rowStage === period.trim().toUpperCase();
                     });
                 }
 
@@ -150,14 +151,23 @@ async function loadSingleElephant(elephant, period) {
 async function loadAllElephants(period) {
     const cacheKey = `ALL_${period}`;
 
-    // Check cache first
-    if (dataCache[cacheKey]) {
-        console.log(`Using cached data for ALL elephants (${period})`);
+    // Check high-level population cache first
+    if (populationCache) {
+        console.log(`Using population cache for period: ${period}`);
+        let filteredData = populationCache;
+        if (period !== 'ALL') {
+            filteredData = populationCache.filter(row => {
+                const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
+                return rowStage === period.toUpperCase();
+            });
+        }
+
+        const summary = calculateSummary(filteredData);
         behavioralData = {
             elephant: 'ALL',
             period: period,
-            data: dataCache[cacheKey].data,
-            summary: dataCache[cacheKey].summary
+            data: filteredData,
+            summary: summary
         };
         updateStatistics(behavioralData.summary);
         updateVisualization();
@@ -167,51 +177,55 @@ async function loadAllElephants(period) {
     const elephants = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
     let allData = [];
 
-    for (const elephant of elephants) {
+    const loadPromises = elephants.map(elephant => {
         const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
-
-        await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             Papa.parse(csvPath, {
                 download: true,
                 header: true,
                 dynamicTyping: true,
                 complete: (results) => {
-                    let data = results.data.filter(row => row.x_m && row.y_m);
-
-                    if (period !== 'ALL') {
-                        data = data.filter(row => {
-                            const rowStage = (row.Stage || row.stage || '').toUpperCase();
-                            return rowStage === period.toUpperCase();
-                        });
-                    }
-
-                    // Add elephant ID
+                    const data = results.data.filter(row => row.x_m && row.y_m);
                     data.forEach(row => row.elephant_id = elephant);
-                    allData = allData.concat(data); // Safest way to merge large arrays
-                    resolve();
+                    resolve(data);
                 },
                 error: (error) => reject(error)
             });
         });
+    });
+
+    try {
+        const results = await Promise.all(loadPromises);
+        results.forEach(data => {
+            allData = allData.concat(data);
+        });
+
+        // Store in global population cache
+        populationCache = allData;
+
+        // Apply period filter for current view
+        let filteredData = allData;
+        if (period !== 'ALL') {
+            filteredData = allData.filter(row => {
+                const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
+                return rowStage === period.toUpperCase();
+            });
+        }
+
+        const summary = calculateSummary(filteredData);
+        behavioralData = {
+            elephant: 'ALL',
+            period: period,
+            data: filteredData,
+            summary: summary
+        };
+
+        updateStatistics(behavioralData.summary);
+        updateVisualization();
+    } catch (error) {
+        console.error('Population load failed:', error);
+        throw error;
     }
-
-    const summary = calculateSummary(allData);
-
-    // Save to cache
-    dataCache[cacheKey] = {
-        data: allData,
-        summary: summary
-    };
-
-    behavioralData = {
-        elephant: 'ALL',
-        period: period,
-        data: allData,
-        summary: summary
-    };
-
-    updateStatistics(behavioralData.summary);
-    updateVisualization();
 }
 
 // Calculate summary statistics
@@ -226,8 +240,10 @@ function calculateSummary(data) {
     };
 
     data.forEach(row => {
-        // Handle both 'behavior' and 'Behavior' columns
-        let behavior = row.behavior || row.Behavior || row.state;
+        // Case-insensitive behavior matching
+        let rawBehavior = row.behavior || row.Behavior || row.state || '';
+        let behavior = rawBehavior.charAt(0).toUpperCase() + rawBehavior.slice(1).toLowerCase();
+
         if (behavior === 'Resting') behavior = 'Low-energy';
 
         if (behaviors.hasOwnProperty(behavior)) {
@@ -363,7 +379,9 @@ function updateElephantProfile() {
 
     const elephant = elephantData[currentElephant];
     if (elephant) {
-        document.getElementById('profile-img').src = `elephants/${elephant.image}`;
+        const imgEl = document.getElementById('profile-img');
+        imgEl.src = `elephants/${elephant.image}`;
+        imgEl.onerror = () => { imgEl.src = 'elephants/elephant_main.jpg'; }; // Fallback
         document.getElementById('profile-name').textContent = elephant.name;
         document.getElementById('profile-badge').textContent = elephant.badge;
 
@@ -421,7 +439,8 @@ function switchAnalysisView(analysisType) {
 
 // Update visualization based on current analysis type
 function updateVisualization() {
-    if (!behavioralData.data || behavioralData.data.length === 0) return;
+    // Check if we have data to work with
+    if (!behavioralData.data) return;
 
     switch (currentAnalysis) {
         case 'time-budget':
@@ -500,7 +519,7 @@ function renderTimeBudgetChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -710,7 +729,7 @@ function renderSeasonalPatterns() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             scales: {
                 x: {
                     stacked: true,
@@ -865,7 +884,7 @@ function renderTemporalPattern() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             scales: {
                 x: {
                     stacked: true,
@@ -940,35 +959,171 @@ async function renderPeriodComparison() {
 
     // Load data for all periods
     const periods = ['PRE', 'INTERIM', 'POST'];
-    const periodData = {};
+    const periodData = { 'PRE': null, 'INTERIM': null, 'POST': null };
+    const periodAggregates = {
+        'PRE': [],
+        'INTERIM': [],
+        'POST': []
+    };
 
-    for (const period of periods) {
-        const csvPath = `data/behavioral_points/${currentElephant}_behavioral_points.csv`;
+    // PERFORMANCE: Use populationCache if available for faster aggregate views
+    if (currentElephant === 'ALL' && populationCache) {
+        console.log('Using population cache for BACI Comparison');
+        periods.forEach(period => {
+            let filtered = populationCache.filter(row => {
+                const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
+                return rowStage === period;
+            });
 
-        await new Promise((resolve) => {
+            if (selectedYear !== 'all') {
+                filtered = filtered.filter(row => {
+                    const date = new Date(row.date || row.Date);
+                    return !isNaN(date) && date.getFullYear() === parseInt(selectedYear);
+                });
+            }
+            periodAggregates[period] = filtered;
+        });
+
+        // Calculate summaries for cached data
+        periods.forEach(period => {
+            const summary = calculateSummary(periodAggregates[period]);
+            // Only include period if it has data
+            if (summary.total > 0) {
+                periodData[period] = summary;
+            }
+        });
+
+        // If no data found at all
+        if (Object.keys(periodData).length === 0) {
+            console.warn('No data found for any period in BACI Comparison');
+            showLoading(false);
+            return;
+        }
+
+        // Render the actual Chart.js instance (rest of the function's logic)
+        renderBACIComparisonUI(ctx, periodData, currentElephant, currentPeriod);
+        showLoading(false);
+        return;
+    }
+
+    const elephantsToLoad = currentElephant === 'ALL' ? ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'] : [currentElephant];
+
+    const loadPromises = elephantsToLoad.map(elephant => {
+        const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
+        return new Promise((resolve) => {
             Papa.parse(csvPath, {
                 download: true,
                 header: true,
                 dynamicTyping: true,
                 complete: (results) => {
-                    let data = results.data.filter(row => {
-                        if (!row.x_m || !row.y_m) return false;
-                        const rowStage = (row.Stage || row.stage || '').toUpperCase();
-                        return rowStage === period.toUpperCase();
-                    });
+                    const validData = results.data.filter(row => row.x_m && row.y_m);
+                    const localPeriodData = { 'PRE': [], 'INTERIM': [], 'POST': [] };
 
-                    // Apply year filter if not "all"
-                    if (selectedYear !== 'all') {
-                        data = data.filter(row => {
-                            const date = new Date(row.date || row.Date);
-                            return !isNaN(date) && date.getFullYear() === parseInt(selectedYear);
+                    periods.forEach(period => {
+                        let filtered = validData.filter(row => {
+                            const rowStage = (row.Stage || row.stage || row.STAGE || '').trim().toUpperCase();
+                            return rowStage === period.toUpperCase();
                         });
-                    }
 
-                    periodData[period] = calculateSummary(data);
-                    resolve();
+                        if (selectedYear !== 'all') {
+                            filtered = filtered.filter(row => {
+                                const date = new Date(row.date || row.Date);
+                                return !isNaN(date) && date.getFullYear() === parseInt(selectedYear);
+                            });
+                        }
+                        localPeriodData[period] = filtered;
+                    });
+                    resolve(localPeriodData);
+                },
+                error: (error) => {
+                    console.error(`Error loading data for ${elephant}:`, error);
+                    resolve({ 'PRE': [], 'INTERIM': [], 'POST': [] }); // Resolve empty on error
                 }
             });
+        });
+    });
+
+    const results = await Promise.all(loadPromises);
+
+    // Aggregate results from all elephants
+    results.forEach(localData => {
+        periods.forEach(period => {
+            periodAggregates[period] = periodAggregates[period].concat(localData[period]);
+        });
+    });
+
+    // Calculate summaries for each period
+    periods.forEach(period => {
+        const summary = calculateSummary(periodAggregates[period]);
+        if (summary.total > 0) {
+            periodData[period] = summary;
+        }
+    });
+
+    if (Object.keys(periodData).length === 0) {
+        console.warn('No data found for any period in BACI Comparison');
+        showLoading(false);
+        return;
+    }
+
+    renderBACIComparisonUI(ctx, periodData, currentElephant, currentPeriod);
+    showLoading(false);
+}
+
+// Dedicated function to render the BACI comparison chart UI
+function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
+    if (charts.comparison) {
+        charts.comparison.destroy();
+    }
+
+    // Define available datasets based on periodData presence
+    const datasets = [];
+
+    if (periodData.PRE) {
+        datasets.push({
+            label: 'Pre',
+            data: [
+                periodData.PRE.percentages.sleeping,
+                periodData.PRE.percentages.resting,
+                periodData.PRE.percentages.foraging,
+                periodData.PRE.percentages.movement,
+                periodData.PRE.percentages.bounce
+            ],
+            backgroundColor: currentPeriod === 'PRE' ? 'rgba(59, 130, 246, 0.9)' : 'rgba(59, 130, 246, 0.4)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: currentPeriod === 'PRE' ? 2 : 1
+        });
+    }
+
+    if (periodData.INTERIM) {
+        datasets.push({
+            label: 'Interim',
+            data: [
+                periodData.INTERIM.percentages.sleeping,
+                periodData.INTERIM.percentages.resting,
+                periodData.INTERIM.percentages.foraging,
+                periodData.INTERIM.percentages.movement,
+                periodData.INTERIM.percentages.bounce
+            ],
+            backgroundColor: currentPeriod === 'INTERIM' ? 'rgba(245, 158, 11, 0.9)' : 'rgba(245, 158, 11, 0.4)',
+            borderColor: 'rgb(245, 158, 11)',
+            borderWidth: currentPeriod === 'INTERIM' ? 2 : 1
+        });
+    }
+
+    if (periodData.POST) {
+        datasets.push({
+            label: 'Post',
+            data: [
+                periodData.POST.percentages.sleeping,
+                periodData.POST.percentages.resting,
+                periodData.POST.percentages.foraging,
+                periodData.POST.percentages.movement,
+                periodData.POST.percentages.bounce
+            ],
+            backgroundColor: currentPeriod === 'POST' ? 'rgba(16, 185, 129, 0.9)' : 'rgba(16, 185, 129, 0.4)',
+            borderColor: 'rgb(16, 185, 129)',
+            borderWidth: currentPeriod === 'POST' ? 2 : 1
         });
     }
 
@@ -976,51 +1131,11 @@ async function renderPeriodComparison() {
         type: 'bar',
         data: {
             labels: ['Sleeping', 'Low-energy', 'Foraging', 'Movement', 'Bounce'],
-            datasets: [
-                {
-                    label: 'Pre',
-                    data: [
-                        periodData.PRE.percentages.sleeping,
-                        periodData.PRE.percentages.resting,
-                        periodData.PRE.percentages.foraging,
-                        periodData.PRE.percentages.movement,
-                        periodData.PRE.percentages.bounce
-                    ],
-                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                    borderColor: 'rgb(59, 130, 246)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Interim',
-                    data: [
-                        periodData.INTERIM.percentages.sleeping,
-                        periodData.INTERIM.percentages.resting,
-                        periodData.INTERIM.percentages.foraging,
-                        periodData.INTERIM.percentages.movement,
-                        periodData.INTERIM.percentages.bounce
-                    ],
-                    backgroundColor: 'rgba(245, 158, 11, 0.6)',
-                    borderColor: 'rgb(245, 158, 11)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Post',
-                    data: [
-                        periodData.POST.percentages.sleeping,
-                        periodData.POST.percentages.resting,
-                        periodData.POST.percentages.foraging,
-                        periodData.POST.percentages.movement,
-                        periodData.POST.percentages.bounce
-                    ],
-                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                    borderColor: 'rgb(16, 185, 129)',
-                    borderWidth: 1
-                }
-            ]
+            datasets: datasets
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             scales: {
                 x: {
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
@@ -1033,8 +1148,7 @@ async function renderPeriodComparison() {
                         display: true,
                         text: 'Percentage (%)',
                         color: '#e2e8f0'
-                    },
-                    max: 100
+                    }
                 }
             },
             plugins: {
@@ -1051,7 +1165,7 @@ async function renderPeriodComparison() {
                 },
                 title: {
                     display: true,
-                    text: `Time Budget Comparison - ${currentElephant}`,
+                    text: `Time Budget Comparison - ${elephantId === 'ALL' ? 'All Elephants' : elephantId} ${currentPeriod !== 'ALL' ? `(Focal: ${currentPeriod})` : ''}`,
                     color: '#f1f5f9',
                     font: {
                         size: 20,
@@ -1063,8 +1177,6 @@ async function renderPeriodComparison() {
             }
         }
     });
-
-    showLoading(false);
 }
 
 // Download current chart

@@ -539,13 +539,39 @@
 @media (max-width: 1024px) {
     .behavioral-container {
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto auto auto;
+        height: auto;
+        min-height: 100vh;
+        overflow-y: visible;
+    }
+
+    .info-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+        max-height: none;
+        overflow-y: visible;
+        padding: var(--spacing-lg);
+    }
+
+    .visualization-area {
+        height: 60vh;
+        min-height: 480px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .viz-header {
+        padding: var(--spacing-lg);
+    }
+
+    .viz-header h2 {
+        font-size: 1.125rem;
     }
 
     .control-panel {
-        border-right: none;
-        border-bottom: 1px solid var(--glass-border);
-        max-height: 400px;
+        border-left: none;
+        max-height: none;
+        overflow-y: visible;
+        padding: var(--spacing-lg);
     }
 
     .elephant-grid {
