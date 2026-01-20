@@ -47,6 +47,18 @@
         <!-- Left Panel - Info & Summary -->
         <div class="info-panel">
             <div class="panel-section">
+                <h3 class="panel-title">Actions</h3>
+                <div class="action-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
+                    <button id="download-chart" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
+                        Save Image
+                    </button>
+                    <button id="print-report" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
+                        Print Report
+                    </button>
+                </div>
+                <p class="filter-hint mt-sm">Export current analysis results</p>
+            </div>
+            <div class="panel-section">
                 <h3 class="panel-title">Elephant Profile</h3>
                 <div class="elephant-profile-card" id="elephant-profile">
                     <div class="profile-image">
@@ -259,7 +271,18 @@
                 <select id="global-year-select" class="year-filter-select">
                     <option value="all">All Available Years</option>
                 </select>
-                <p class="filter-hint">Filters data for the current selection</p>
+
+                <div id="baci-mode-container" class="mt-md hidden">
+                    <h3 class="panel-subtitle"
+                        style="font-size: 0.75rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; text-transform: uppercase;">
+                        BACI Scaling</h3>
+                    <div class="analysis-selector" style="grid-template-columns: 1fr 1fr;">
+                        <button class="mode-btn active" data-mode="absolute">Absolute (%)</button>
+                        <button class="mode-btn" data-mode="delta">Delta (%)</button>
+                    </div>
+                </div>
+
+                <p class="filter-hint mt-sm">Filters data for the current selection</p>
             </div>
 
             <div class="panel-section">

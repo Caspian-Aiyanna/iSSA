@@ -97,6 +97,18 @@
             </div>
 
             <div class="panel-section">
+                <h3 class="panel-title">Actions</h3>
+                <div class="action-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
+                    <button id="cite-btn" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
+                        Cite View
+                    </button>
+                    <button id="export-map" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
+                        Export Map
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
                 <div class="note-box">
                     <strong>Note:</strong> Loading CSV data. Large datasets may take a
                     moment to load. Use the "Max Points" selector to adjust performance.
@@ -115,6 +127,27 @@
                     </div>
                 </div>
 
+                <div class="context-box mt-md" id="env-context">
+                    <h4 class="distribution-title">Environmental Context</h4>
+                    <div class="context-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem;">
+                        <div class="context-item">
+                            <span class="stat-label">Dist. to Fence</span>
+                            <span class="stat-value" id="fence-dist" style="font-size: 0.9rem;">- m</span>
+                        </div>
+                        <div class="context-item">
+                            <span class="stat-label">Avg. Speed</span>
+                            <span class="stat-value" id="avg-speed" style="font-size: 0.9rem;">- m/min</span>
+                        </div>
+                        <div class="context-item"
+                            style="grid-column: span 2; border-top: 1px solid var(--glass-border); padding-top: 8px; margin-top: 5px;">
+                            <span class="stat-label">Nearby Elephants (Dist)</span>
+                            <span class="stat-value" id="co-travel-list"
+                                style="font-size: 0.85rem; color: var(--color-accent-primary);">-</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="behavior-distribution">
                     <h4 class="distribution-title">Time Budget Distribution</h4>
                     <div class="distribution-bar">
@@ -124,29 +157,33 @@
                         <div class="bar-segment movement" style="width: 20%"></div>
                         <div class="bar-segment bounce" style="width: 20%"></div>
                     </div>
-                    <div class="distribution-legend-grid">
-                        <div class="legend-item">
-                            <span class="legend-color sleeping"></span>
-                            <span class="legend-label">Sleeping: <strong id="sleeping-pct">20%</strong></span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color resting"></span>
-                            <span class="legend-label">Low-energy: <strong id="resting-pct">20%</strong></span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color foraging"></span>
-                            <span class="legend-label">Foraging: <strong id="foraging-pct">20%</strong></span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color movement"></span>
-                            <span class="legend-label">Movement: <strong id="movement-pct">20%</strong></span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color bounce"></span>
-                            <span class="legend-label">Bounce: <strong id="bounce-pct">20%</strong></span>
-                        </div>
+                </div>
+                <div class="distribution-legend-grid"
+                    style="grid-template-columns: repeat(3, 1fr); font-size: 0.7rem; gap: 4px; margin-top: 8px;">
+                    <div class="legend-item"><span class="legend-color sleeping"></span> Sl: <strong
+                            id="sleeping-pct">0%</strong></div>
+                    <div class="legend-item"><span class="legend-color resting"></span> Lo: <strong
+                            id="resting-pct">0%</strong></div>
+                    <div class="legend-item"><span class="legend-color foraging"></span> Fo: <strong
+                            id="foraging-pct">0%</strong></div>
+                    <div class="legend-item"><span class="legend-color movement"></span> Mo: <strong
+                            id="movement-pct">0%</strong></div>
+                    <div class="legend-item"><span class="legend-color bounce"></span> Bo: <strong
+                            id="bounce-pct">0%</strong></div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Movement Metrics</h3>
+                <div class="metrics-charts">
+                    <div class="metric-chart-container" style="height: 120px; margin-bottom: var(--spacing-md);">
+                        <canvas id="speed-chart"></canvas>
+                    </div>
+                    <div class="metric-chart-container" style="height: 120px;">
+                        <canvas id="tortuosity-chart"></canvas>
                     </div>
                 </div>
+                <p class="filter-hint mt-sm">Real-time Speed and Turning Angle analysis</p>
             </div>
         </div>
 
@@ -227,7 +264,7 @@
             <div class="panel-section">
                 <h3 class="panel-title">Elephant Selection</h3>
                 <div class="elephant-selector">
-                    <button class="elephant-btn active male" data-elephant="E1">Kamva</button>
+                    <button class="elephant-btn male" data-elephant="E1">Kamva</button>
                     <button class="elephant-btn male" data-elephant="E2">Kambaku</button>
                     <button class="elephant-btn female" data-elephant="E3">Bukela</button>
                     <button class="elephant-btn female" data-elephant="E4">Half Moon</button>
@@ -255,7 +292,15 @@
             </div>
 
             <div class="panel-section">
-                <h3 class="panel-title">Behavioral Filters</h3>
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <h3 class="panel-title" style="margin-bottom: 0;">Behavioral Filters</h3>
+                    <label class="filter-checkbox" style="margin-bottom: 0; font-size: 0.7rem;">
+                        <input type="checkbox" checked id="toggle-all-behaviors">
+                        <span class="checkbox-custom" style="background: var(--color-accent-primary);"></span>
+                        <span class="filter-label">Select All</span>
+                    </label>
+                </div>
                 <div class="behavior-filters-grid">
                     <label class="filter-checkbox">
                         <input type="checkbox" checked data-behavior="Sleeping">
@@ -298,19 +343,15 @@
                         <input type="checkbox" id="show-trail" checked>
                         <span class="toggle-label">Trail</span>
                     </label>
-                    <label class="toggle-option">
-                        <input type="checkbox" id="show-rsf">
-                        <span class="toggle-label">RSF Map</span>
-                    </label>
                 </div>
                 <div style="margin-top: var(--spacing-md);">
                     <select id="max-points"
                         style="width: 100%; padding: var(--spacing-sm); background: var(--color-bg-tertiary); color: var(--color-text-primary); border: 1px solid var(--glass-border); border-radius: var(--radius-sm);">
                         <option value="500">500 (Fast)</option>
-                        <option value="1000" selected>1000 (Standard)</option>
+                        <option value="1000">1000 (Standard)</option>
                         <option value="2000">2000 (Detailed)</option>
                         <option value="5000">5000 (Full Detail)</option>
-                        <option value="all">All Points (Warning: Slow)</option>
+                        <option value="all" selected>All Points (Warning: Slow)</option>
                     </select>
                 </div>
             </div>
@@ -318,7 +359,12 @@
     </div>
 
     <!-- Scripts -->
+    <!-- Charts.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- GeoRaster scripts -->
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
     <!-- PapaParse for CSV parsing -->
     <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
     <!-- Proj4js for coordinate transformation -->

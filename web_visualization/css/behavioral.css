@@ -618,3 +618,53 @@
         height: 200px;
     }
 }
+/* Print Styles */
+@media print {
+    .navbar, .control-panel, .action-grid, .year-filter-select, .filter-hint, #baci-mode-container {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    .behavioral-container {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .info-panel {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 2px solid #ccc !important;
+        margin-bottom: 20px !important;
+        max-height: none !important;
+    }
+
+    .visualization-area {
+        height: auto !important;
+        min-height: 500px !important;
+    }
+
+    .elephant-profile-card {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    .stat-card {
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    .stat-value {
+        color: #4f46e5 !important;
+    }
+
+    .viz-header h2 {
+        color: #0f172a !important;
+    }
+}

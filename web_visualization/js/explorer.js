@@ -3,19 +3,41 @@
  * Loads actual elephant behavioral data from CSV files
  */
 
+// Elephant Metadata
+const ELEPHANT_INFO = {
+    'E1': { name: 'Kamva', gender: 'male' },
+    'E2': { name: 'Kambaku', gender: 'male' },
+    'E3': { name: 'Bukela', gender: 'female' },
+    'E4': { name: 'Half Moon', gender: 'female' },
+    'E5': { name: 'Beauty', gender: 'female' },
+    'E6': { name: 'Balu', gender: 'male' }
+};
+
 // Global state
 let map = null;
-let currentElephant = 'E1';
+let currentElephant = null;
+let activeElephants = [];
 let currentPeriod = 'pre';
-let trajectoryData = null;
-let fullDataset = null;
-let trajectoryLayer = null;
-let currentMarker = null;
-let markerLayer = null;
+let trajectories = {}; // Store processed data for active elephants: { 'E1': [...] }
+let rawDatasets = {};  // Store full raw datasets per elephant (NOW PRE-PROCESSED)
+let trajectoryData = null; // Primary focused data (usually trajectories[currentElephant])
+let fullDataset = null; // Primary raw dataset (legacy support)
+let trajectoryLayer = null; // Primary background trajectory line
+let currentMarker = null; // Primary marker (name bubble)
+let markerLayer = null; // Layer for behavioral state dots
+let layers = {
+    trajectories: {}, // Multi-elephant background lines & history trails
+    markers: {}       // Multi-elephant current markers (name bubbles)
+};
 let isPlaying = false;
 let currentIndex = 0;
 let animationInterval = null;
-let animatedPath = null;
+let animatedPath = null; // Focal white dotted history trail
+let rsfLayer = null;
+let metricsCharts = {
+    speed: null,
+    tortuosity: null
+};
 
 // ===================================
 // INITIALIZATION
@@ -24,690 +46,548 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get elephant from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     const elephantParam = urlParams.get('elephant');
-    if (elephantParam) {
+    if (elephantParam && ELEPHANT_INFO[elephantParam]) {
         currentElephant = elephantParam;
-        updateElephantSelection();
+        activeElephants = [currentElephant];
     }
 
     initializeMap();
     initializeControls();
+    initializeMetricsCharts();
 
-    // Auto-load data for selected elephant
-    setTimeout(() => {
-        loadRealData();
-    }, 500);
+    // Auto-load data if elephant in URL
+    if (activeElephants.length > 0) {
+        setTimeout(() => {
+            loadAllActiveTrajectories();
+        }, 500);
+    } else {
+        showDataStatus('info', '<strong>Select an elephant</strong> to begin exploring trajectories.');
+    }
+
+    // Citation listener
+    const citeBtn = document.getElementById('cite-btn');
+    if (citeBtn) {
+        citeBtn.addEventListener('click', generateCitation);
+    }
 });
+
+function initializeMetricsCharts() {
+    const ctxSpeed = document.getElementById('speed-chart').getContext('2d');
+    const ctxTort = document.getElementById('tortuosity-chart').getContext('2d');
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        elements: { point: { radius: 0 } },
+        scales: {
+            x: { display: false },
+            y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { display: false }
+            }
+        },
+        plugins: { legend: { display: false }, tooltip: { enabled: true } }
+    };
+
+    metricsCharts.speed = new Chart(ctxSpeed, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Speed', data: [], borderColor: '#667eea', borderWidth: 2, fill: true, backgroundColor: 'rgba(102, 126, 234, 0.1)' }] },
+        options: { ...commonOptions, plugins: { ...commonOptions.plugins, title: { display: true, text: 'Speed (m/min)', color: '#94a3b8', font: { size: 10 } } } }
+    });
+
+    metricsCharts.tortuosity = new Chart(ctxTort, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Turn Angle', data: [], borderColor: '#10B981', borderWidth: 2, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.1)' }] },
+        options: { ...commonOptions, plugins: { ...commonOptions.plugins, title: { display: true, text: 'Turning Angle (°)', color: '#94a3b8', font: { size: 10 } } } }
+    });
+}
+
+function generateCitation() {
+    if (!currentElephant) {
+        alert('Please select an elephant first.');
+        return;
+    }
+    const date = new Date().toLocaleDateString();
+    const citation = `Kariega Elephant Project (2025). Behavioral Dataset: ${currentElephant}, Period: ${currentPeriod.toUpperCase()}. Accessed via Interactive SSA Platform on ${date}. DOI: 10.XXXX/SSA.EXP.${currentElephant}.${currentPeriod.toUpperCase()}`;
+    navigator.clipboard.writeText(citation).then(() => {
+        alert('Citation copied to clipboard!\n\n' + citation);
+    });
+}
 
 // ===================================
 // MAP INITIALIZATION
 // ===================================
 async function initializeMap() {
-    // Load map configuration
     const configResponse = await fetch('data/map_config.json');
     const mapConfig = await configResponse.json();
 
-    // Initialize Leaflet map centered on study area
-    map = L.map('map').setView(
-        [mapConfig.center.lat, mapConfig.center.lng],
-        mapConfig.zoom
-    );
+    map = L.map('map').setView([mapConfig.center.lat, mapConfig.center.lng], mapConfig.zoom);
 
-    // Add OpenStreetMap tiles
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
+        attribution: '© OpenStreetMap contributors', maxZoom: 18
     });
 
-    // Add satellite imagery option
     const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles © Esri',
-        maxZoom: 18
+        attribution: 'Tiles © Esri', maxZoom: 18
     }).addTo(map);
 
-    // Layer control
-    const baseMaps = {
-        "Satellite": satellite,
-        "Street Map": osmLayer
-    };
-
+    const baseMaps = { "Satellite": satellite, "Street Map": osmLayer };
     L.control.layers(baseMaps).addTo(map);
-
-    // Add scale
     L.control.scale().addTo(map);
 
-    // Create layer group for markers
     markerLayer = L.layerGroup().addTo(map);
 
-    // Load and display study area boundaries
     try {
         const kwResponse = await fetch('data/kw_boundary.geojson');
         const kwData = await kwResponse.json();
-        L.geoJSON(kwData, {
-            style: {
-                color: '#667eea',
-                weight: 2,
-                fillOpacity: 0.1
-            }
-        }).addTo(map).bindPopup('KW Study Area');
+        L.geoJSON(kwData, { style: { color: '#667eea', weight: 2, fillOpacity: 0.1 } }).addTo(map).bindPopup('KW Study Area');
 
         const hvResponse = await fetch('data/hv_boundary.geojson');
         const hvData = await hvResponse.json();
-        L.geoJSON(hvData, {
-            style: {
-                color: '#764ba2',
-                weight: 2,
-                fillOpacity: 0.1
-            }
-        }).addTo(map).bindPopup('HV Study Area');
+        L.geoJSON(hvData, { style: { color: '#764ba2', weight: 2, fillOpacity: 0.1 } }).addTo(map).bindPopup('HV Study Area');
 
-        // Load fence line (will be shown/hidden based on period)
         const fenceResponse = await fetch('data/fence_line.geojson');
         const fenceData = await fenceResponse.json();
-        window.fenceLayer = L.geoJSON(fenceData, {
-            style: {
-                color: '#ef4444',
-                weight: 3,
-                opacity: 0.8
-            }
-        }).addTo(map).bindPopup('Fence Line');
+        window.fenceData = fenceData;
+        window.fenceLayer = L.geoJSON(fenceData, { style: { color: '#ef4444', weight: 3, opacity: 0.8 } }).addTo(map).bindPopup('Fence Line');
+    } catch (e) { console.error('Error loading boundaries:', e); }
 
-        console.log('Study area boundaries and fence line loaded');
-    } catch (error) {
-        console.error('Error loading boundaries:', error);
-    }
-
-    // Set map bounds to study area
-    const bounds = L.latLngBounds(
-        [mapConfig.bounds.south, mapConfig.bounds.west],
-        [mapConfig.bounds.north, mapConfig.bounds.east]
-    );
+    const bounds = L.latLngBounds([mapConfig.bounds.south, mapConfig.bounds.west], [mapConfig.bounds.north, mapConfig.bounds.east]);
     map.fitBounds(bounds, { padding: [50, 50] });
     map.setMaxBounds(bounds);
     map.setMinZoom(10);
-
-    // Fix map size issue
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 100);
-
-    console.log('Map initialized successfully!');
+    setTimeout(() => map.invalidateSize(), 100);
 }
 
 // ===================================
-// REAL DATA LOADING
+// DATA LOADING & OPTIMIZATION
 // ===================================
-async function loadRealData() {
-    showDataStatus('loading', `Loading data for ${currentElephant}...`);
+async function loadAllActiveTrajectories() {
+    if (activeElephants.length === 0) {
+        showDataStatus('info', '<strong>Select an elephant</strong> to begin.');
+        renderTrajectory();
+        return;
+    }
+
+    showDataStatus('loading', `Syncing trajectories...`);
     document.getElementById('loading').style.display = 'flex';
 
     try {
-        // Construct path to CSV file
-        const csvPath = `data/behavioral_points/${currentElephant}_behavioral_points.csv`;
-
-        console.log('Loading CSV from:', csvPath);
-
-        // Fetch and parse CSV
-        const response = await fetch(csvPath);
-
-        if (!response.ok) {
-            throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
+        for (const id of activeElephants) {
+            if (!rawDatasets[id]) {
+                await loadElephantData(id);
+            }
         }
 
-        const csvText = await response.text();
-
-        // Parse CSV with PapaParse
-        Papa.parse(csvText, {
-            header: true,
-            dynamicTyping: true,
-            skipEmptyLines: true,
-            complete: function (results) {
-                console.log(`Loaded ${results.data.length} points for ${currentElephant}`);
-                processLoadedData(results.data);
-            },
-            error: function (error) {
-                console.error('CSV parsing error:', error);
-                showDataStatus('error', `Error parsing CSV: ${error.message}`);
-                document.getElementById('loading').style.display = 'none';
-            }
-        });
-
+        if (currentElephant) fullDataset = rawDatasets[currentElephant];
+        filterDataByPeriod();
+        document.getElementById('loading').style.display = 'none';
+        updateElephantSelection();
     } catch (error) {
         console.error('Error loading data:', error);
-        showDataStatus('error',
-            `<strong>Error loading data:</strong><br>` +
-            `${error.message}<br>` +
-            `<small>Make sure the CSV file exists at: data/behavioral_points/${currentElephant}_behavioral_points.csv</small>`
-        );
+        showDataStatus('error', `Loading failed: ${error.message}`);
         document.getElementById('loading').style.display = 'none';
     }
 }
 
-function processLoadedData(data) {
-    // Store full dataset
-    fullDataset = data;
+async function loadElephantData(id) {
+    const csvPath = `data/behavioral_points/${id}_behavioral_points.csv`;
+    const response = await fetch(csvPath);
+    if (!response.ok) throw new Error(`CSV not found for ${id}`);
+    const csvText = await response.text();
 
-    // Filter by current period
-    filterDataByPeriod();
+    return new Promise((resolve, reject) => {
+        Papa.parse(csvText, {
+            header: true, dynamicTyping: true, skipEmptyLines: true,
+            complete: (results) => {
+                // OPTIMIZATION: Process coordinates and metrics ONCE during initial load
+                proj4.defs("EPSG:32735", "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs");
 
-    document.getElementById('loading').style.display = 'none';
+                const processed = results.data.map((row, i) => {
+                    const utmEasting = parseFloat(row.x_m);
+                    const utmNorthing = parseFloat(row.y_m);
+                    const [lng, lat] = proj4('EPSG:32735', 'EPSG:4326', [utmEasting, utmNorthing]);
+                    const dateTime = new Date(row.date);
+
+                    let speed = 0, turnAngle = 0;
+                    if (i > 0) {
+                        const prev = results.data[i - 1];
+                        const dist = Math.sqrt(Math.pow(row.x_m - (prev.x_m || row.x_m), 2) + Math.pow(row.y_m - (prev.y_m || row.y_m), 2));
+                        const timeDiff = (dateTime - new Date(prev.date)) / (1000 * 60);
+                        speed = timeDiff > 0 ? (dist / timeDiff) : 0;
+                        if (i > 1) {
+                            const prevPrev = results.data[i - 2];
+                            const angle1 = Math.atan2((prev.y_m || row.y_m) - (prevPrev.y_m || prev.y_m), (prev.x_m || row.x_m) - (prevPrev.x_m || prev.x_m));
+                            const angle2 = Math.atan2(row.y_m - (prev.y_m || row.y_m), row.x_m - (prev.x_m || row.x_m));
+                            turnAngle = (angle2 - angle1) * (180 / Math.PI);
+                            if (turnAngle > 180) turnAngle -= 360;
+                            if (turnAngle < -180) turnAngle += 360;
+                        }
+                    }
+
+                    return {
+                        lat, lng, x_m: utmEasting, y_m: utmNorthing,
+                        behavior: (row.behavior === 'Resting' || row.state === 'Resting') ? 'Low-energy' : (row.behavior || 'Unknown'),
+                        time: row.date, timestamp: !isNaN(dateTime) ? dateTime.getTime() : 0,
+                        stage: (row.Stage || row.stage || '').toLowerCase(),
+                        zone: row.Zone || '', speed, turnAngle: Math.abs(turnAngle)
+                    };
+                }).filter(p => !isNaN(p.lat));
+
+                // Sort once
+                processed.sort((a, b) => a.timestamp - b.timestamp);
+                rawDatasets[id] = processed;
+                resolve();
+            },
+            error: (err) => reject(err)
+        });
+    });
 }
 
 function filterDataByPeriod() {
-    if (!fullDataset) return;
+    trajectories = {};
+    activeElephants.forEach(id => {
+        const dataset = rawDatasets[id];
+        if (!dataset) return;
 
-    // Filter by stage (period)
-    let filteredData = fullDataset.filter(row => {
-        return row.Stage && row.Stage.toLowerCase() === currentPeriod.toLowerCase();
+        // Filtering is now extremely fast because results are pre-processed
+        let filtered = dataset.filter(p => p.stage === currentPeriod.toLowerCase());
+        if (filtered.length === 0) return;
+
+        const maxPointsSetting = document.getElementById('max-points').value;
+        const maxPoints = maxPointsSetting === 'all' ? filtered.length : parseInt(maxPointsSetting);
+        if (filtered.length > maxPoints) {
+            const step = Math.floor(filtered.length / maxPoints);
+            filtered = filtered.filter((_, index) => index % step === 0);
+        }
+
+        trajectories[id] = filtered;
     });
 
-    if (filteredData.length === 0) {
-        showDataStatus('warning',
-            `No data found for ${currentElephant} in ${currentPeriod.toUpperCase()} period.<br>` +
-            `<small>Try selecting a different period.</small>`
-        );
+    if (currentElephant && trajectories[currentElephant]) {
+        trajectoryData = trajectories[currentElephant];
+    } else if (activeElephants.length > 0) {
+        currentElephant = activeElephants[0];
+        trajectoryData = trajectories[currentElephant];
+    } else {
         trajectoryData = null;
+    }
+
+    if (activeElephants.length > 0 && !trajectoryData) {
+        showDataStatus('warning', `No data found for ${currentPeriod.toUpperCase()}`);
         return;
     }
 
-    // Get max points setting
-    const maxPointsSetting = document.getElementById('max-points').value;
-    const maxPoints = maxPointsSetting === 'all' ? filteredData.length : parseInt(maxPointsSetting);
-
-    // Sample data if needed
-    if (filteredData.length > maxPoints) {
-        const step = Math.floor(filteredData.length / maxPoints);
-        filteredData = filteredData.filter((_, index) => index % step === 0);
-        console.log(`Sampled ${filteredData.length} points from ${fullDataset.length} total`);
-    }
-
-    // Convert to our format with proper coordinate transformation
-    // Define UTM Zone 35S (EPSG:32735) - this is the CRS used in the R script
-    proj4.defs("EPSG:32735", "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs");
-
-    trajectoryData = filteredData.map(row => {
-        // Use x_m and y_m which are in UTM meters
-        const utmEasting = parseFloat(row.x_m);
-        const utmNorthing = parseFloat(row.y_m);
-
-        // Convert from UTM to WGS84 [longitude, latitude]
-        const [lng, lat] = proj4('EPSG:32735', 'EPSG:4326', [utmEasting, utmNorthing]);
-
-        // Parse date properly for sorting
-        // Format in CSV: 2022-08-08T00:05:00Z (UTC)
-        const dateTime = new Date(row.date);
-
-        return {
-            lat: lat,
-            lng: lng,
-            behavior: (row.behavior === 'Resting' || row.Behavior === 'Resting' || row.state === 'Resting') ? 'Low-energy' : (row.behavior || 'Unknown'),
-            time: row.date,
-            timestamp: !isNaN(dateTime) ? dateTime.getTime() : 0,
-            zone: row.Zone || ''
-        };
-    }).filter(point => !isNaN(point.lat) && !isNaN(point.lng));
-
-    // CRITICAL: Sort by timestamp to ensure chronological order regardless of CSV row order
-    trajectoryData.sort((a, b) => a.timestamp - b.timestamp);
-
-    console.log(`Processed ${trajectoryData.length} valid points`);
-
-    if (trajectoryData.length === 0) {
-        showDataStatus('error', 'No valid coordinate data found');
-        return;
-    }
-
-    // Update UI
     renderTrajectory();
     updateStatistics();
-
-    showDataStatus('success',
-        `<strong>Data Loaded Successfully!</strong><br>` +
-        `${trajectoryData.length} points for ${currentElephant} (${currentPeriod.toUpperCase()} period)<br>` +
-        `<small>Date range: ${new Date(trajectoryData[0].timestamp).toLocaleDateString()} to ${new Date(trajectoryData[trajectoryData.length - 1].timestamp).toLocaleDateString()}</small>`
-    );
+    if (activeElephants.length > 0) {
+        showDataStatus('success', `Loaded ${activeElephants.length} active trajectories`);
+    }
 }
 
 // ===================================
-// TRAJECTORY RENDERING
+// RENDERING
 // ===================================
 function renderTrajectory() {
-    if (!trajectoryData || trajectoryData.length === 0) return;
-
-    // Clear existing layers
-    if (trajectoryLayer) {
-        map.removeLayer(trajectoryLayer);
-    }
-    if (currentMarker) {
-        map.removeLayer(currentMarker);
-    }
+    if (trajectoryLayer) map.removeLayer(trajectoryLayer);
+    if (currentMarker) map.removeLayer(currentMarker);
     markerLayer.clearLayers();
 
-    // Get active behavioral filters
-    const activeFilters = getActiveFilters();
-    const filteredData = trajectoryData.filter(point => activeFilters.includes(point.behavior));
+    Object.values(layers.trajectories).forEach(l => map.removeLayer(l));
+    Object.values(layers.markers).forEach(l => map.removeLayer(l));
+    layers.trajectories = {};
+    layers.markers = {};
 
-    if (filteredData.length === 0) {
-        showDataStatus('warning', 'No data matches current filters');
+    if (animatedPath) { map.removeLayer(animatedPath); animatedPath = null; }
+
+    if (activeElephants.length === 0) {
+        trajectoryData = null;
+        updateStatistics();
         return;
     }
 
-    // Create polyline for trajectory
+    const activeFilters = getActiveFilters();
     const showTrail = document.getElementById('show-trail').checked;
-    if (showTrail) {
-        const points = filteredData.map(p => [p.lat, p.lng]);
-        trajectoryLayer = L.polyline(points, {
-            color: '#667eea',
-            weight: 2,
-            opacity: 0.6
-        }).addTo(map);
-    }
 
-    // Add colored markers for each point
-    // We adjust sampling based on settings - if 'all' is selected, we show ALL points to preserve sharp angles
-    const maxPointsSetting = document.getElementById('max-points').value;
-    const markerStep = maxPointsSetting === 'all' ? 1 : Math.max(1, Math.floor(filteredData.length / 500));
+    const allBounds = L.latLngBounds([]);
+    let hasData = false;
 
-    filteredData.forEach((point, index) => {
-        if (index % markerStep !== 0) return;
+    activeElephants.forEach(id => {
+        const data = trajectories[id];
+        if (!data) return;
+        const filtered = data.filter(p => activeFilters.includes(p.behavior));
 
-        const color = getBehaviorColor(point.behavior);
-        const marker = L.circleMarker([point.lat, point.lng], {
-            radius: 4,
-            fillColor: color,
-            color: '#fff',
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.7
-        });
+        if (filtered.length > 0) {
+            if (id === currentElephant && showTrail) {
+                trajectoryLayer = L.polyline(filtered.map(p => [p.lat, p.lng]), {
+                    color: '#667eea', weight: 2, opacity: 0.8
+                }).addTo(map);
+                allBounds.extend(trajectoryLayer.getBounds());
+                hasData = true;
+            } else if (showTrail) {
+                layers.trajectories[id] = L.polyline(filtered.map(p => [p.lat, p.lng]), {
+                    color: '#94a3b8', weight: 1.5, opacity: 0.5
+                }).addTo(map);
+                allBounds.extend(layers.trajectories[id].getBounds());
+                hasData = true;
+            }
 
-        // Format time in South African Standard Time (GMT+2)
-        const sastTime = new Date(point.timestamp).toLocaleString('en-ZA', {
-            timeZone: 'Africa/Johannesburg',
-            dateStyle: 'medium',
-            timeStyle: 'short'
-        });
+            if (id === currentElephant) {
+                // Respect the actual maxPoints setting for discrete markers
+                const maxPointsSetting = document.getElementById('max-points').value;
+                const markerLimit = maxPointsSetting === 'all' ? filtered.length : 2000;
+                const step = Math.max(1, Math.floor(filtered.length / markerLimit));
 
-        marker.bindPopup(`
-            <strong>${point.behavior}</strong><br>
-            Time (SAST): ${sastTime}<br>
-            Zone: ${point.zone}<br>
-            Lat: ${point.lat.toFixed(6)}<br>
-            Lng: ${point.lng.toFixed(6)}
-        `);
-
-        markerLayer.addLayer(marker);
+                filtered.forEach((p, i) => {
+                    if (i % step !== 0) return;
+                    const m = L.circleMarker([p.lat, p.lng], { radius: 4, fillColor: getBehaviorColor(p.behavior), color: '#fff', weight: 1, fillOpacity: 0.7 });
+                    m.bindPopup(`<strong>${p.behavior}</strong> (${ELEPHANT_INFO[id].name})<br>${new Date(p.timestamp).toLocaleString()}`);
+                    markerLayer.addLayer(m);
+                });
+            }
+        }
     });
 
-    // Fit map to trajectory bounds
-    if (trajectoryLayer) {
-        map.fitBounds(trajectoryLayer.getBounds(), { padding: [50, 50] });
-    } else if (filteredData.length > 0) {
-        const bounds = L.latLngBounds(filteredData.map(p => [p.lat, p.lng]));
-        map.fitBounds(bounds, { padding: [50, 50] });
-    }
-
-    // Reset animation
-    currentIndex = 0;
-    document.getElementById('time-slider').value = 0;
-    updateCurrentPosition();
+    if (hasData) map.fitBounds(allBounds, { padding: [50, 50] });
+    resetAnimation();
 }
 
-function getBehaviorColor(behavior) {
-    const colors = {
-        'Sleeping': '#999999',
-        'Low-energy': '#E69F00',
-        'Foraging': '#10B981',
-        'Movement': '#56B4E9',
-        'Bounce': '#E41A1C'
-    };
-    return colors[behavior] || '#667eea';
+function updateCurrentPosition() {
+    if (!trajectoryData || activeElephants.length === 0) return;
+    const primaryPoint = trajectoryData[currentIndex];
+
+    if (currentMarker) map.removeLayer(currentMarker);
+    const info = ELEPHANT_INFO[currentElephant];
+    currentMarker = L.marker([primaryPoint.lat, primaryPoint.lng], {
+        icon: L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div class="name-bubble ${info.gender}">${info.name}</div>`,
+            iconAnchor: [40, 30]
+        })
+    }).addTo(map);
+
+    const history = trajectoryData.slice(0, currentIndex + 1).map(p => [p.lat, p.lng]);
+    if (isPlaying) {
+        if (!animatedPath) {
+            animatedPath = L.polyline(history, {
+                color: '#ffffff', weight: 2, opacity: 0.8, dashArray: '5, 10'
+            }).addTo(map);
+        } else {
+            animatedPath.setLatLngs(history);
+        }
+    } else if (animatedPath) {
+        map.removeLayer(animatedPath);
+        animatedPath = null;
+    }
+
+    const sastTime = new Date(primaryPoint.timestamp).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg', timeStyle: 'medium' });
+    document.getElementById('current-time').textContent = sastTime;
+    document.getElementById('current-behavior').textContent = primaryPoint.behavior;
+    document.getElementById('current-behavior').style.background = getBehaviorColor(primaryPoint.behavior);
+    document.getElementById('avg-speed').textContent = `${primaryPoint.speed.toFixed(1)} m/min`;
+
+    if (window.fenceData) {
+        let minDist = Infinity;
+        const latLng = L.latLng(primaryPoint.lat, primaryPoint.lng);
+        window.fenceData.features.forEach(f => {
+            const coords = f.geometry.type === 'LineString' ? [f.geometry.coordinates] : f.geometry.coordinates;
+            coords.forEach(line => line.forEach(c => {
+                const d = latLng.distanceTo(L.latLng(c[1], c[0]));
+                if (d < minDist) minDist = d;
+            }));
+        });
+        document.getElementById('fence-dist').textContent = minDist < 1000 ? `${Math.round(minDist)} m` : `${(minDist / 1000).toFixed(2)} km`;
+    }
+
+    activeElephants.forEach(id => {
+        if (id === currentElephant) return;
+        if (layers.markers[id]) map.removeLayer(layers.markers[id]);
+        const data = trajectories[id];
+        if (!data) return;
+
+        let closestIndex = 0;
+        let minT = Math.abs(data[0].timestamp - primaryPoint.timestamp);
+        data.forEach((p, idx) => {
+            const t = Math.abs(p.timestamp - primaryPoint.timestamp);
+            if (t < minT) { minT = t; closestIndex = idx; }
+        });
+        const closest = data[closestIndex];
+
+        if (minT < 3600000) {
+            const secInfo = ELEPHANT_INFO[id];
+            layers.markers[id] = L.marker([closest.lat, closest.lng], {
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="name-bubble secondary ${secInfo.gender}">${secInfo.name}</div>`,
+                    iconAnchor: [40, 30]
+                })
+            }).addTo(map);
+
+            if (isPlaying) {
+                const trailId = `trail_${id}`;
+                const otherHistory = data.slice(0, closestIndex + 1).map(p => [p.lat, p.lng]);
+                if (!layers.trajectories[trailId]) {
+                    layers.trajectories[trailId] = L.polyline(otherHistory, {
+                        color: '#ffffff', weight: 1.5, opacity: 0.5, dashArray: '5, 5'
+                    }).addTo(map);
+                } else {
+                    layers.trajectories[trailId].setLatLngs(otherHistory);
+                }
+            } else {
+                const trailId = `trail_${id}`;
+                if (layers.trajectories[trailId]) { map.removeLayer(layers.trajectories[trailId]); delete layers.trajectories[trailId]; }
+            }
+        }
+    });
+
+    const nearbyNames = activeElephants.filter(id => id !== currentElephant && layers.markers[id]).map(id => ELEPHANT_INFO[id].name);
+    document.getElementById('co-travel-list').textContent = nearbyNames.length > 0 ? nearbyNames.join(', ') : 'None nearby';
+    updateMetricsHighlight(currentIndex);
+    if (isPlaying) map.panTo([primaryPoint.lat, primaryPoint.lng], { animate: true });
+}
+
+// ===================================
+// UI HELPERS
+// ===================================
+function getBehaviorColor(b) {
+    const c = { 'Sleeping': '#999999', 'Low-energy': '#E69F00', 'Foraging': '#10B981', 'Movement': '#56B4E9', 'Bounce': '#E41A1C' };
+    return c[b] || '#667eea';
 }
 
 function updateStatistics() {
-    if (!trajectoryData || trajectoryData.length === 0) return;
-
-    // Calculate behavior distribution
-    const counts = { Sleeping: 0, 'Low-energy': 0, Foraging: 0, Movement: 0, Bounce: 0 };
-    trajectoryData.forEach(point => {
-        if (counts.hasOwnProperty(point.behavior)) {
-            counts[point.behavior]++;
-        }
-    });
-
-    const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    const sleepingPct = Math.round((counts.Sleeping / total) * 100);
-    const restingPct = Math.round((counts['Low-energy'] / total) * 100);
-    const foragingPct = Math.round((counts.Foraging / total) * 100);
-    const movementPct = Math.round((counts.Movement / total) * 100);
-    const bouncePct = Math.round((counts.Bounce / total) * 100);
-
-    // Display statistics
-    document.getElementById('total-points').textContent = trajectoryData.length.toLocaleString();
-
-    // Format date range safely in SAST
-    if (trajectoryData.length > 0) {
-        const first = new Date(trajectoryData[0].timestamp);
-        const last = new Date(trajectoryData[trajectoryData.length - 1].timestamp);
-
-        const formatDate = (date) => date.toLocaleDateString('en-ZA', {
-            timeZone: 'Africa/Johannesburg'
-        });
-
-        const dateRange = `${formatDate(first)} to ${formatDate(last)}`;
-        document.getElementById('date-range').textContent = dateRange;
+    if (!trajectoryData) {
+        document.getElementById('total-points').textContent = '0';
+        document.getElementById('date-range').textContent = 'None';
+        return;
     }
+    const counts = { Sleeping: 0, 'Low-energy': 0, Foraging: 0, Movement: 0, Bounce: 0 };
+    trajectoryData.forEach(p => { if (counts.hasOwnProperty(p.behavior)) counts[p.behavior]++; });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const getPct = (v) => total > 0 ? Math.round((v / total) * 100) : 0;
 
-    document.getElementById('sleeping-pct').textContent = `${sleepingPct}%`;
-    document.getElementById('resting-pct').textContent = `${restingPct}%`;
-    document.getElementById('foraging-pct').textContent = `${foragingPct}%`;
-    document.getElementById('movement-pct').textContent = `${movementPct}%`;
-    document.getElementById('bounce-pct').textContent = `${bouncePct}%`;
+    document.getElementById('total-points').textContent = total.toLocaleString();
+    const first = new Date(trajectoryData[0].timestamp), last = new Date(trajectoryData[trajectoryData.length - 1].timestamp);
+    document.getElementById('date-range').textContent = `${first.toLocaleDateString()} - ${last.toLocaleDateString()}`;
 
-    // Update distribution bar
-    document.querySelector('.bar-segment.sleeping').style.width = `${sleepingPct}%`;
-    document.querySelector('.bar-segment.resting').style.width = `${restingPct}%`;
-    document.querySelector('.bar-segment.foraging').style.width = `${foragingPct}%`;
-    document.querySelector('.bar-segment.movement').style.width = `${movementPct}%`;
-    document.querySelector('.bar-segment.bounce').style.width = `${bouncePct}%`;
+    ['sleeping', 'resting', 'foraging', 'movement', 'bounce'].forEach(key => {
+        const label = key === 'resting' ? 'Low-energy' : key.charAt(0).toUpperCase() + key.slice(1);
+        const pct = getPct(counts[label] || 0);
+        document.getElementById(`${key}-pct`).textContent = `${pct}%`;
+        const bar = document.querySelector(`.bar-segment.${key}`);
+        if (bar) bar.style.width = `${pct}%`;
+    });
 }
 
-// ===================================
-// CONTROLS INITIALIZATION
-// ===================================
 function initializeControls() {
-    // Elephant selection
-    document.querySelectorAll('.elephant-btn').forEach(btn => {
+    document.querySelectorAll('.elephant-selector .elephant-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            currentElephant = btn.dataset.elephant;
+            const id = btn.dataset.elephant;
+            if (activeElephants.includes(id)) {
+                activeElephants = activeElephants.filter(x => x !== id);
+                if (currentElephant === id) {
+                    currentElephant = activeElephants.length > 0 ? activeElephants[activeElephants.length - 1] : null;
+                }
+            } else {
+                activeElephants.push(id);
+                currentElephant = id;
+            }
+            // UPDATE IMMEDIATELY for instant UI feedback
             updateElephantSelection();
-            loadRealData();
+            loadAllActiveTrajectories();
         });
     });
 
-    // Period selection
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const period = btn.dataset.period;
-
-            // Check if period is available for this elephant
-            const elephant = window.elephantPlatform.elephants[currentElephant];
-            if (!elephant.periods.includes(period)) {
-                showDataStatus('warning', `${period.toUpperCase()} period data not available for ${currentElephant}`);
-                return;
-            }
-
-            currentPeriod = period;
+            currentPeriod = btn.dataset.period;
             updatePeriodSelection();
             filterDataByPeriod();
         });
     });
 
-    // Behavioral filters
-    document.querySelectorAll('.filter-checkbox input').forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            if (trajectoryData) {
-                renderTrajectory();
-            }
+    document.querySelectorAll('.filter-checkbox input').forEach(cb => cb.addEventListener('change', renderTrajectory));
+
+    const toggleAllBtn = document.getElementById('toggle-all-behaviors');
+    if (toggleAllBtn) {
+        toggleAllBtn.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            document.querySelectorAll('.behavior-filters-grid .filter-checkbox input').forEach(cb => {
+                cb.checked = isChecked;
+            });
+            renderTrajectory();
         });
-    });
+    }
 
-    // Max points selector
-    document.getElementById('max-points').addEventListener('change', () => {
-        if (fullDataset) {
-            filterDataByPeriod();
-        }
-    });
-
-    // Playback controls
+    document.getElementById('max-points').addEventListener('change', filterDataByPeriod);
     document.getElementById('play-btn').addEventListener('click', startAnimation);
     document.getElementById('pause-btn').addEventListener('click', pauseAnimation);
     document.getElementById('reset-btn').addEventListener('click', resetAnimation);
-
-    // Step-by-step navigation
-    document.getElementById('prev-btn').addEventListener('click', () => {
-        if (!trajectoryData || trajectoryData.length === 0) return;
-        pauseAnimation();
-        if (currentIndex > 0) {
-            currentIndex--;
-            const progress = (currentIndex / (trajectoryData.length - 1)) * 100;
-            document.getElementById('time-slider').value = progress;
-            updateCurrentPosition();
-        }
-    });
-
-    document.getElementById('next-btn').addEventListener('click', () => {
-        if (!trajectoryData || trajectoryData.length === 0) return;
-        pauseAnimation();
-        if (currentIndex < trajectoryData.length - 1) {
-            currentIndex++;
-            const progress = (currentIndex / (trajectoryData.length - 1)) * 100;
-            document.getElementById('time-slider').value = progress;
-            updateCurrentPosition();
-        }
-    });
-
-    // Speed control
-    document.getElementById('speed-select').addEventListener('change', (e) => {
-        if (isPlaying) {
-            pauseAnimation();
-            startAnimation();
-        }
-    });
-
-    // Timeline slider
-    document.getElementById('time-slider').addEventListener('input', (e) => {
+    document.getElementById('time-slider').addEventListener('input', e => {
         if (!trajectoryData) return;
-        const value = parseInt(e.target.value);
-        const maxIndex = trajectoryData.length - 1;
-        currentIndex = Math.floor((value / 100) * maxIndex);
+        currentIndex = Math.floor((e.target.value / 100) * (trajectoryData.length - 1));
         updateCurrentPosition();
     });
-
-    // Display options
-    document.getElementById('show-fence').addEventListener('change', updateFenceDisplay);
-    document.getElementById('show-trail').addEventListener('change', () => {
-        if (trajectoryData) renderTrajectory();
-    });
-    document.getElementById('show-rsf').addEventListener('change', updateRSFDisplay);
 }
 
-// ===================================
-// UI UPDATES
-// ===================================
 function updateElephantSelection() {
-    document.querySelectorAll('.elephant-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.elephant === currentElephant);
-    });
-
-    // Update period availability
-    const elephant = window.elephantPlatform.elephants[currentElephant];
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        const period = btn.dataset.period;
-        const isAvailable = elephant.periods.includes(period);
-        btn.disabled = !isAvailable;
-
-        if (!isAvailable && btn.classList.contains('active')) {
-            currentPeriod = 'pre';
-            updatePeriodSelection();
-        }
+    document.querySelectorAll('.elephant-selector .elephant-btn').forEach(btn => {
+        btn.classList.toggle('active', activeElephants.includes(btn.dataset.elephant));
     });
 }
 
 function updatePeriodSelection() {
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.period === currentPeriod);
-    });
-
-    const showFence = window.elephantPlatform.periods[currentPeriod].showFence;
-    document.getElementById('show-fence').checked = showFence;
-    updateFenceDisplay();
+    document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === currentPeriod));
 }
 
-function showDataStatus(type, message) {
-    const statusEl = document.getElementById('data-status');
-    const iconEl = statusEl.querySelector('.status-icon');
-    const messageEl = statusEl.querySelector('.status-message');
-
-    const icons = {
-        loading: '⏳',
-        info: 'ℹ️',
-        warning: '⚠️',
-        error: '❌',
-        success: '✅'
-    };
-
-    iconEl.textContent = icons[type] || icons.info;
-    messageEl.innerHTML = message;
-    statusEl.style.display = 'flex';
+function showDataStatus(type, msg) {
+    const el = document.getElementById('data-status');
+    if (el) el.querySelector('.status-message').innerHTML = msg;
 }
 
 function getActiveFilters() {
-    const filters = [];
-    document.querySelectorAll('.filter-checkbox input:checked').forEach(checkbox => {
-        filters.push(checkbox.dataset.behavior);
-    });
-    return filters;
+    return Array.from(document.querySelectorAll('.filter-checkbox input:checked')).map(cb => cb.dataset.behavior);
 }
 
-// ===================================
-// ANIMATION CONTROLS
-// ===================================
 function startAnimation() {
-    if (!trajectoryData || trajectoryData.length === 0) {
-        showDataStatus('warning', 'No trajectory data loaded');
-        return;
-    }
-
+    if (isPlaying || !trajectoryData) return;
     isPlaying = true;
     document.getElementById('play-btn').style.display = 'none';
     document.getElementById('pause-btn').style.display = 'block';
-
-    const speed = parseFloat(document.getElementById('speed-select').value);
-    const interval = 1000 / speed;
-
     animationInterval = setInterval(() => {
-        if (currentIndex >= trajectoryData.length - 1) {
-            pauseAnimation();
-            return;
-        }
-
+        if (currentIndex >= trajectoryData.length - 1) { pauseAnimation(); return; }
         currentIndex++;
-        const progress = (currentIndex / (trajectoryData.length - 1)) * 100;
-        document.getElementById('time-slider').value = progress;
+        document.getElementById('time-slider').value = (currentIndex / (trajectoryData.length - 1)) * 100;
         updateCurrentPosition();
-    }, interval);
+    }, 1000 / parseFloat(document.getElementById('speed-select').value));
 }
 
 function pauseAnimation() {
     isPlaying = false;
     document.getElementById('play-btn').style.display = 'block';
     document.getElementById('pause-btn').style.display = 'none';
-
-    if (animationInterval) {
-        clearInterval(animationInterval);
-        animationInterval = null;
-    }
+    clearInterval(animationInterval);
+    updateCurrentPosition();
 }
 
 function resetAnimation() {
     pauseAnimation();
     currentIndex = 0;
-    if (animatedPath) {
-        map.removeLayer(animatedPath);
-        animatedPath = null;
-    }
     document.getElementById('time-slider').value = 0;
     updateCurrentPosition();
 }
 
-function updateCurrentPosition() {
-    if (!trajectoryData || trajectoryData.length === 0) return;
-
-    const point = trajectoryData[currentIndex];
-
-    // Remove old marker
-    if (currentMarker) {
-        map.removeLayer(currentMarker);
-    }
-
-    // Handle animated path drawing
-    const history = trajectoryData.slice(0, currentIndex + 1).map(p => [p.lat, p.lng]);
-    if (!animatedPath) {
-        animatedPath = L.polyline(history, {
-            color: '#fff',
-            weight: 3,
-            opacity: 0.8,
-            dashArray: '5, 10'
-        }).addTo(map);
-    } else {
-        animatedPath.setLatLngs(history);
-    }
-
-    // Add pulsing marker at current position
-    currentMarker = L.circleMarker([point.lat, point.lng], {
-        radius: 12,
-        fillColor: getBehaviorColor(point.behavior),
-        color: '#fff',
-        weight: 3,
-        opacity: 1,
-        fillOpacity: 0.9
-    }).addTo(map);
-
-    // Update tooltip info with SAST
-    const currentSast = new Date(point.timestamp).toLocaleString('en-ZA', {
-        timeZone: 'Africa/Johannesburg',
-        timeStyle: 'medium'
-    });
-
-    const displayBehavior = point.behavior;
-
-    currentMarker.bindTooltip(`
-        <strong>${displayBehavior}</strong><br>
-        Time (SAST): ${currentSast}
-    `, { permanent: false, direction: 'top' }).openTooltip();
-
-    // Update center display
-    document.getElementById('current-time').textContent = currentSast;
-    document.getElementById('current-behavior').textContent = displayBehavior;
-    document.getElementById('current-behavior').style.background = getBehaviorColor(point.behavior);
-
-    // Smoothly pan to current position if playing
-    if (isPlaying) {
-        map.panTo([point.lat, point.lng], { animate: true });
+function updateMetricsHighlight(idx) {
+    if (metricsCharts.speed && trajectoryData) {
+        metricsCharts.speed.setActiveElements([{ datasetIndex: 0, index: idx }]);
+        metricsCharts.speed.update('none');
     }
 }
 
-// ===================================
-// DISPLAY UPDATES
-// ===================================
+
+
 function updateFenceDisplay() {
-    const showFence = document.getElementById('show-fence').checked;
     if (window.fenceLayer) {
-        if (showFence) {
-            map.addLayer(window.fenceLayer);
-        } else {
-            map.removeLayer(window.fenceLayer);
-        }
-    }
-    console.log('Fence display:', showFence);
-}
-
-function updateRSFDisplay() {
-    const showRSF = document.getElementById('show-rsf').checked;
-    if (showRSF) {
-        showDataStatus('info', 'RSF heatmap loading will be implemented with GeoTIFF.js');
+        if (document.getElementById('show-fence').checked) map.addLayer(window.fenceLayer);
+        else map.removeLayer(window.fenceLayer);
     }
 }
-
-// ===================================
-// EXPORTS
-// ===================================
-window.explorerApp = {
-    map,
-    loadRealData,
-    startAnimation,
-    pauseAnimation,
-    resetAnimation
-};
-
-console.log('Explorer initialized with real CSV data loading!');

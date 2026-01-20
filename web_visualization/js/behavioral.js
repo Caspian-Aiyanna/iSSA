@@ -6,6 +6,7 @@ let behavioralData = {};
 let currentElephant = 'E1';
 let currentPeriod = 'PRE';
 let currentAnalysis = 'time-budget';
+let currentBaciMode = 'absolute'; // 'absolute' or 'delta'
 let charts = {};
 let heatmapInstance = null;
 let dataCache = {}; // Cache for CSV data (Individual and Period-specific)
@@ -13,9 +14,36 @@ let populationCache = null; // High-level cache for ALL elephants (contains all 
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+    setChartDefaults();
     initializeEventListeners();
     loadBehavioralData(currentElephant, currentPeriod);
+
+    // Listen for theme changes to update chart colors
+    window.addEventListener('themeChanged', (e) => {
+        setChartDefaults();
+        updateVisualization();
+    });
 });
+
+function setChartDefaults() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const textColor = isLight ? '#334155' : '#e2e8f0';
+    const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)';
+
+    Chart.defaults.color = textColor;
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.plugins.tooltip.backgroundColor = isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(30, 41, 59, 0.9)';
+    Chart.defaults.plugins.tooltip.titleColor = textColor;
+    Chart.defaults.plugins.tooltip.bodyColor = textColor;
+    Chart.defaults.plugins.tooltip.borderColor = gridColor;
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+
+    // Smoother animations
+    Chart.defaults.animation = {
+        duration: 1000,
+        easing: 'easeOutQuart'
+    };
+}
 
 // Event Listeners
 function initializeEventListeners() {
@@ -52,6 +80,14 @@ function initializeEventListeners() {
     // Download chart
     document.getElementById('download-chart').addEventListener('click', downloadCurrentChart);
 
+    // Print report
+    const printBtn = document.getElementById('print-report');
+    if (printBtn) {
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+    }
+
     // Global year filter (applies to all analysis types)
     document.getElementById('global-year-select').addEventListener('change', () => {
         updateVisualization();
@@ -64,6 +100,16 @@ function initializeEventListeners() {
 
     document.getElementById('month-select').addEventListener('change', () => {
         if (currentAnalysis === 'seasonal') renderSeasonalPatterns();
+    });
+
+    // BACI Mode toggle
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentBaciMode = e.target.dataset.mode;
+            if (currentAnalysis === 'comparison') renderPeriodComparison();
+        });
     });
 }
 
@@ -431,6 +477,16 @@ function switchAnalysisView(analysisType) {
         'comparison': 'Period Comparison'
     };
     document.getElementById('viz-title').textContent = titles[analysisType];
+
+    // BACI mode toggle visibility
+    const baciContainer = document.getElementById('baci-mode-container');
+    if (baciContainer) {
+        if (analysisType === 'comparison') {
+            baciContainer.classList.remove('hidden');
+        } else {
+            baciContainer.classList.add('hidden');
+        }
+    }
 
     // Show selected container
     const containerMap = {
@@ -1098,19 +1154,14 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
         charts.comparison.destroy();
     }
 
-    // Define available datasets based on periodData presence
+    const isDelta = currentBaciMode === 'delta';
     const datasets = [];
+    const behaviors = ['sleeping', 'resting', 'foraging', 'movement', 'bounce'];
 
     if (periodData.PRE) {
         datasets.push({
-            label: 'Pre',
-            data: [
-                periodData.PRE.percentages.sleeping,
-                periodData.PRE.percentages.resting,
-                periodData.PRE.percentages.foraging,
-                periodData.PRE.percentages.movement,
-                periodData.PRE.percentages.bounce
-            ],
+            label: isDelta ? 'Pre (Baseline)' : 'Pre',
+            data: behaviors.map(b => isDelta ? 0 : periodData.PRE.percentages[b]),
             backgroundColor: currentPeriod === 'PRE' ? 'rgba(59, 130, 246, 0.9)' : 'rgba(59, 130, 246, 0.4)',
             borderColor: 'rgb(59, 130, 246)',
             borderWidth: currentPeriod === 'PRE' ? 2 : 1
@@ -1119,14 +1170,12 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
 
     if (periodData.INTERIM) {
         datasets.push({
-            label: 'Interim',
-            data: [
-                periodData.INTERIM.percentages.sleeping,
-                periodData.INTERIM.percentages.resting,
-                periodData.INTERIM.percentages.foraging,
-                periodData.INTERIM.percentages.movement,
-                periodData.INTERIM.percentages.bounce
-            ],
+            label: isDelta ? 'Interim (Δ %)' : 'Interim',
+            data: behaviors.map(b => {
+                const val = periodData.INTERIM.percentages[b];
+                const baseline = periodData.PRE ? periodData.PRE.percentages[b] : 0;
+                return isDelta ? (val - baseline) : val;
+            }),
             backgroundColor: currentPeriod === 'INTERIM' ? 'rgba(245, 158, 11, 0.9)' : 'rgba(245, 158, 11, 0.4)',
             borderColor: 'rgb(245, 158, 11)',
             borderWidth: currentPeriod === 'INTERIM' ? 2 : 1
@@ -1135,14 +1184,12 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
 
     if (periodData.POST) {
         datasets.push({
-            label: 'Post',
-            data: [
-                periodData.POST.percentages.sleeping,
-                periodData.POST.percentages.resting,
-                periodData.POST.percentages.foraging,
-                periodData.POST.percentages.movement,
-                periodData.POST.percentages.bounce
-            ],
+            label: isDelta ? 'Post (Δ %)' : 'Post',
+            data: behaviors.map(b => {
+                const val = periodData.POST.percentages[b];
+                const baseline = periodData.PRE ? periodData.PRE.percentages[b] : 0;
+                return isDelta ? (val - baseline) : val;
+            }),
             backgroundColor: currentPeriod === 'POST' ? 'rgba(16, 185, 129, 0.9)' : 'rgba(16, 185, 129, 0.4)',
             borderColor: 'rgb(16, 185, 129)',
             borderWidth: currentPeriod === 'POST' ? 2 : 1
@@ -1164,11 +1211,15 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
                     ticks: { color: '#e2e8f0' }
                 },
                 y: {
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)',
+                        zeroLineColor: '#f1f5f9',
+                        zeroLineWidth: 2
+                    },
                     ticks: { color: '#e2e8f0' },
                     title: {
                         display: true,
-                        text: 'Percentage (%)',
+                        text: isDelta ? 'Change relative to Pre (%)' : 'Percentage (%)',
                         color: '#e2e8f0'
                     }
                 }
@@ -1187,7 +1238,7 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
                 },
                 title: {
                     display: true,
-                    text: `Time Budget Comparison - ${elephantId === 'ALL' ? 'All Elephants' : (elephantId === 'MALES' ? 'All Males' : (elephantId === 'FEMALES' ? 'All Females' : elephantId))} ${currentPeriod !== 'ALL' ? `(Focal: ${currentPeriod})` : ''}`,
+                    text: `${isDelta ? 'BACI Behavioral Shift' : 'Time Budget Comparison'} - ${elephantId === 'ALL' ? 'All Elephants' : (elephantId === 'MALES' ? 'All Males' : (elephantId === 'FEMALES' ? 'All Females' : elephantId))} ${currentPeriod !== 'ALL' ? `(Focal: ${currentPeriod})` : ''}`,
                     color: '#f1f5f9',
                     font: {
                         size: 20,
@@ -1195,6 +1246,20 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
                         weight: 'bold'
                     },
                     padding: 20
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toFixed(1) + '%';
+                            }
+                            return label;
+                        }
+                    }
                 }
             }
         }
