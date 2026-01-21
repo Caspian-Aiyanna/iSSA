@@ -354,7 +354,7 @@ function renderTrajectory() {
     resetAnimation();
 }
 
-function updateCurrentPosition() {
+function updateCurrentPosition(forcePan = false) {
     if (!trajectoryData || activeElephants.length === 0) return;
     const primaryPoint = trajectoryData[currentIndex];
 
@@ -369,7 +369,9 @@ function updateCurrentPosition() {
     }).addTo(map);
 
     const history = trajectoryData.slice(0, currentIndex + 1).map(p => [p.lat, p.lng]);
-    if (isPlaying) {
+    const showTrail = document.getElementById('show-trail').checked;
+
+    if (showTrail) {
         if (!animatedPath) {
             animatedPath = L.polyline(history, {
                 color: '#ffffff', weight: 2, opacity: 0.8, dashArray: '5, 10'
@@ -445,7 +447,7 @@ function updateCurrentPosition() {
     const nearbyNames = activeElephants.filter(id => id !== currentElephant && layers.markers[id]).map(id => ELEPHANT_INFO[id].name);
     document.getElementById('co-travel-list').textContent = nearbyNames.length > 0 ? nearbyNames.join(', ') : 'None nearby';
     updateMetricsHighlight(currentIndex);
-    if (isPlaying) map.panTo([primaryPoint.lat, primaryPoint.lng], { animate: true });
+    if (isPlaying || forcePan) map.panTo([primaryPoint.lat, primaryPoint.lng], { animate: true });
 }
 
 // ===================================
@@ -530,6 +532,32 @@ function initializeControls() {
     document.getElementById('play-btn').addEventListener('click', startAnimation);
     document.getElementById('pause-btn').addEventListener('click', pauseAnimation);
     document.getElementById('reset-btn').addEventListener('click', resetAnimation);
+    document.getElementById('prev-btn').addEventListener('click', () => {
+        if (currentIndex > 0) {
+            pauseAnimation();
+            currentIndex--;
+            updateFromIndex(true);
+        }
+    });
+    document.getElementById('next-btn').addEventListener('click', () => {
+        if (trajectoryData && currentIndex < trajectoryData.length - 1) {
+            pauseAnimation();
+            currentIndex++;
+            updateFromIndex(true);
+        }
+    });
+
+    const deselectBtn = document.getElementById('deselect-all-elephants');
+    if (deselectBtn) {
+        deselectBtn.addEventListener('click', () => {
+            activeElephants = [];
+            currentElephant = null;
+            updateElephantSelection();
+            syncStateToUrl();
+            loadAllActiveTrajectories();
+        });
+    }
+
     document.getElementById('time-slider').addEventListener('input', e => {
         if (!trajectoryData) return;
         currentIndex = Math.floor((e.target.value / 100) * (trajectoryData.length - 1));
@@ -564,9 +592,14 @@ function startAnimation() {
     animationInterval = setInterval(() => {
         if (currentIndex >= trajectoryData.length - 1) { pauseAnimation(); return; }
         currentIndex++;
-        document.getElementById('time-slider').value = (currentIndex / (trajectoryData.length - 1)) * 100;
-        updateCurrentPosition();
+        updateFromIndex();
     }, 1000 / parseFloat(document.getElementById('speed-select').value));
+}
+
+function updateFromIndex(forcePan = false) {
+    if (!trajectoryData) return;
+    document.getElementById('time-slider').value = (currentIndex / (trajectoryData.length - 1)) * 100;
+    updateCurrentPosition(forcePan);
 }
 
 function pauseAnimation() {
@@ -580,8 +613,7 @@ function pauseAnimation() {
 function resetAnimation() {
     pauseAnimation();
     currentIndex = 0;
-    document.getElementById('time-slider').value = 0;
-    updateCurrentPosition();
+    updateFromIndex(true);
 }
 
 function updateMetricsHighlight(idx) {

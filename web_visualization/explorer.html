@@ -261,16 +261,20 @@
 
         <!-- Right Panel - Controls -->
         <div class="control-panel">
-            <div class="panel-section">
-                <h3 class="panel-title">Elephant Selection</h3>
-                <div class="elephant-selector">
-                    <button class="elephant-btn male" data-elephant="E1">Kamva</button>
-                    <button class="elephant-btn male" data-elephant="E2">Kambaku</button>
-                    <button class="elephant-btn female" data-elephant="E3">Bukela</button>
-                    <button class="elephant-btn female" data-elephant="E4">Half Moon</button>
-                    <button class="elephant-btn female" data-elephant="E5">Beauty</button>
-                    <button class="elephant-btn male" data-elephant="E6">Balu</button>
-                </div>
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h3 class="panel-title" style="margin-bottom: 0;">Elephant Selection</h3>
+                <button id="deselect-all-elephants" class="text-btn"
+                    style="font-size: 0.7rem; color: var(--color-accent-primary); background: none; border: none; cursor: pointer; padding: 0; font-weight: 600;">Deselect
+                    All</button>
+            </div>
+            <div class="elephant-selector">
+                <button class="elephant-btn male" data-elephant="E1">Kamva</button>
+                <button class="elephant-btn male" data-elephant="E2">Kambaku</button>
+                <button class="elephant-btn female" data-elephant="E3">Bukela</button>
+                <button class="elephant-btn female" data-elephant="E4">Half Moon</button>
+                <button class="elephant-btn female" data-elephant="E5">Beauty</button>
+                <button class="elephant-btn male" data-elephant="E6">Balu</button>
             </div>
 
             <div class="panel-section">
