@@ -54,9 +54,19 @@ proj4.defs("EPSG:32735", "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_de
 document.addEventListener('DOMContentLoaded', async () => {
     initMaps();
     await loadData();
+
+    // Load state from URL parameters
+    loadStateFromUrl();
+
     setupEventListeners();
     initAnalytics();
     setupAnimation();
+
+    // Listen for URL changes
+    window.addEventListener('popstate', () => {
+        loadStateFromUrl();
+        updateMaps(document.getElementById('period-sync').value);
+    });
 });
 
 function initMaps() {
@@ -289,10 +299,12 @@ function setupEventListeners() {
             crossingToggle.checked = false;
         }
 
+        syncStateToUrl();
         updateMaps(period);
     });
 
     document.getElementById('show-crossings').addEventListener('change', () => {
+        syncStateToUrl();
         updateMaps(document.getElementById('period-sync').value);
     });
 }
@@ -388,4 +400,32 @@ function initAnalytics() {
             scales: { y: { display: false }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } }
         }
     });
+}
+
+// Deep Linking & State Management
+function syncStateToUrl() {
+    const params = new URLSearchParams();
+    const period = document.getElementById('period-sync').value;
+    const crossings = document.getElementById('show-crossings').checked;
+
+    params.set('period', period);
+    params.set('crossings', crossings);
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+}
+
+function loadStateFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.has('period')) {
+        const period = params.get('period');
+        document.getElementById('period-sync').value = period;
+    }
+
+    if (params.has('crossings')) {
+        document.getElementById('show-crossings').checked = params.get('crossings') === 'true';
+    }
+
+    updateMaps(document.getElementById('period-sync').value);
 }

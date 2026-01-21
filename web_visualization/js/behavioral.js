@@ -7,6 +7,8 @@ let currentElephant = 'E1';
 let currentPeriod = 'PRE';
 let currentAnalysis = 'time-budget';
 let currentBaciMode = 'absolute'; // 'absolute' or 'delta'
+let currentSeasonalMode = 'percent'; // 'percent' or 'count'
+let currentTemporalMode = 'percent'; // 'percent' or 'count'
 let charts = {};
 let heatmapInstance = null;
 let dataCache = {}; // Cache for CSV data (Individual and Period-specific)
@@ -16,7 +18,17 @@ let populationCache = null; // High-level cache for ALL elephants (contains all 
 document.addEventListener('DOMContentLoaded', () => {
     setChartDefaults();
     initializeEventListeners();
+
+    // Load state from URL parameters before initial data load
+    loadStateFromUrl();
+
     loadBehavioralData(currentElephant, currentPeriod);
+
+    // Listen for URL changes (back/forward buttons)
+    window.addEventListener('popstate', () => {
+        loadStateFromUrl();
+        loadBehavioralData(currentElephant, currentPeriod);
+    });
 
     // Listen for theme changes to update chart colors
     window.addEventListener('themeChanged', (e) => {
@@ -53,6 +65,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.elephant-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentElephant = e.target.dataset.elephant;
+            syncStateToUrl();
             loadBehavioralData(currentElephant, currentPeriod);
         });
     });
@@ -63,6 +76,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentPeriod = e.target.dataset.period;
+            syncStateToUrl();
             loadBehavioralData(currentElephant, currentPeriod);
         });
     });
@@ -73,6 +87,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.analysis-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentAnalysis = e.target.dataset.analysis;
+            syncStateToUrl();
             switchAnalysisView(currentAnalysis);
         });
     });
@@ -85,6 +100,18 @@ function initializeEventListeners() {
     if (printBtn) {
         printBtn.addEventListener('click', () => {
             window.print();
+        });
+    }
+
+    // Copy Citation Link
+    const copyBtn = document.getElementById('copy-link');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => copyBtn.textContent = originalText, 2000);
+            });
         });
     }
 
@@ -111,6 +138,82 @@ function initializeEventListeners() {
             if (currentAnalysis === 'comparison') renderPeriodComparison();
         });
     });
+
+    document.querySelectorAll('.seasonal-mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.seasonal-mode-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentSeasonalMode = e.target.dataset.mode;
+            syncStateToUrl();
+            if (currentAnalysis === 'seasonal') renderSeasonalPatterns();
+        });
+    });
+
+    document.querySelectorAll('.temporal-mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.temporal-mode-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentTemporalMode = e.target.dataset.mode;
+            syncStateToUrl();
+            if (currentAnalysis === 'temporal') renderTemporalPattern();
+        });
+    });
+}
+
+// Deep Linking & State Management
+function syncStateToUrl() {
+    const params = new URLSearchParams();
+    params.set('elephant', currentElephant);
+    params.set('period', currentPeriod);
+    params.set('analysis', currentAnalysis);
+    params.set('seasonalMode', currentSeasonalMode);
+    params.set('temporalMode', currentTemporalMode);
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+}
+
+function loadStateFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.has('elephant')) {
+        currentElephant = params.get('elephant');
+        // Update UI
+        document.querySelectorAll('.elephant-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.elephant === currentElephant);
+        });
+    }
+
+    if (params.has('period')) {
+        currentPeriod = params.get('period');
+        // Update UI
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.period === currentPeriod);
+        });
+    }
+
+    if (params.has('analysis')) {
+        currentAnalysis = params.get('analysis');
+        // Update UI
+        document.querySelectorAll('.analysis-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.analysis === currentAnalysis);
+        });
+        switchAnalysisView(currentAnalysis);
+    }
+
+    if (params.has('seasonalMode')) {
+        currentSeasonalMode = params.get('seasonalMode');
+        document.querySelectorAll('.seasonal-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === currentSeasonalMode);
+        });
+    }
+
+    if (params.has('temporalMode')) {
+        currentTemporalMode = params.get('temporalMode');
+        document.querySelectorAll('.temporal-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === currentTemporalMode);
+        });
+    }
 }
 
 // Load behavioral data
@@ -488,6 +591,26 @@ function switchAnalysisView(analysisType) {
         }
     }
 
+    // Seasonal mode toggle visibility
+    const seasonalModeContainer = document.getElementById('seasonal-toggle-container');
+    if (seasonalModeContainer) {
+        if (analysisType === 'seasonal') {
+            seasonalModeContainer.classList.remove('hidden');
+        } else {
+            seasonalModeContainer.classList.add('hidden');
+        }
+    }
+
+    // Temporal mode toggle visibility
+    const temporalModeContainer = document.getElementById('temporal-toggle-container');
+    if (temporalModeContainer) {
+        if (analysisType === 'temporal') {
+            temporalModeContainer.classList.remove('hidden');
+        } else {
+            temporalModeContainer.classList.add('hidden');
+        }
+    }
+
     // Show selected container
     const containerMap = {
         'time-budget': 'time-budget-container',
@@ -495,7 +618,11 @@ function switchAnalysisView(analysisType) {
         'temporal': 'temporal-container',
         'comparison': 'comparison-container'
     };
-    document.getElementById(containerMap[analysisType]).classList.remove('hidden');
+    const targetId = containerMap[analysisType];
+    const targetElement = document.getElementById(targetId);
+    if (targetElement) {
+        targetElement.classList.remove('hidden');
+    }
 
     // Update visualization
     updateVisualization();
@@ -798,9 +925,10 @@ function renderSeasonalPatterns() {
                 x: {
                     stacked: true,
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                    ticks: {
-                        color: '#e2e8f0',
-                        font: { size: 12 }
+                    title: {
+                        display: true,
+                        text: 'Month',
+                        color: '#94a3b8'
                     }
                 },
                 x2: {
@@ -826,15 +954,20 @@ function renderSeasonalPatterns() {
                 y: {
                     stacked: true,
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                    ticks: {
-                        color: '#e2e8f0',
-                        font: { size: 12 }
-                    },
+                    beginAtZero: true,
+                    max: currentSeasonalMode === 'percent' ? 100 : undefined,
                     title: {
                         display: true,
-                        text: 'Number of Observations',
+                        text: currentSeasonalMode === 'percent' ? 'Proportion (%)' : 'Number of Observations',
                         color: '#e2e8f0',
                         font: { size: 14, weight: '600' }
+                    },
+                    ticks: {
+                        color: '#e2e8f0',
+                        font: { size: 12 },
+                        callback: function (value) {
+                            return currentSeasonalMode === 'percent' ? value + '%' : value.toLocaleString();
+                        }
                     }
                 }
             },
@@ -860,19 +993,61 @@ function renderSeasonalPatterns() {
                         weight: 'bold'
                     },
                     padding: 20
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y || 0;
+                            if (currentSeasonalMode === 'percent') {
+                                return `${label}: ${value.toFixed(1)}%`;
+                            }
+                            return `${label}: ${value.toLocaleString()} observations`;
+                        }
+                    }
                 }
             }
         }
     });
+
+    // If in percent mode, we need to transform the data
+    if (currentSeasonalMode === 'percent') {
+        const datasets = charts.seasonal.data.datasets;
+        const labels = charts.seasonal.data.labels;
+
+        for (let i = 0; i < labels.length; i++) {
+            let total = 0;
+            datasets.forEach(dataset => {
+                total += dataset.data[i];
+            });
+
+            if (total > 0) {
+                datasets.forEach(dataset => {
+                    dataset.data[i] = (dataset.data[i] / total) * 100;
+                });
+            }
+        }
+        charts.seasonal.update();
+    }
 }
 
 // Render temporal pattern (24-hour activity)
 function renderTemporalPattern() {
-    const ctx = document.getElementById('temporal-chart').getContext('2d');
+    const canvas = document.getElementById('temporal-chart');
+    if (!canvas) return;
 
-    // Destroy existing chart
+    // Ensure container is visible before rendering to prevent dimension issues
+    const container = document.getElementById('temporal-container');
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // Destroy existing chart and clear property
     if (charts.temporal) {
         charts.temporal.destroy();
+        charts.temporal = null;
     }
 
     // Use filtered data based on year selection
@@ -967,13 +1142,18 @@ function renderTemporalPattern() {
                 y: {
                     stacked: true,
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    beginAtZero: true,
+                    max: currentTemporalMode === 'percent' ? 100 : undefined,
                     ticks: {
                         color: '#e2e8f0',
-                        font: { size: 12 }
+                        font: { size: 12 },
+                        callback: function (value) {
+                            return currentTemporalMode === 'percent' ? value + '%' : value.toLocaleString();
+                        }
                     },
                     title: {
                         display: true,
-                        text: 'Number of Observations',
+                        text: currentTemporalMode === 'percent' ? 'Proportion (%)' : 'Number of Observations',
                         color: '#e2e8f0',
                         font: { size: 14, weight: '600' }
                     }
@@ -1001,10 +1181,40 @@ function renderTemporalPattern() {
                         weight: 'bold'
                     },
                     padding: 20
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y || 0;
+                            if (currentTemporalMode === 'percent') {
+                                return `${label}: ${value.toFixed(1)}%`;
+                            }
+                            return `${label}: ${value.toLocaleString()} observations`;
+                        }
+                    }
                 }
             }
         }
     });
+
+    // If in percent mode, transform temporal data
+    if (currentTemporalMode === 'percent') {
+        const datasets = charts.temporal.data.datasets;
+        for (let i = 0; i < 24; i++) {
+            let total = 0;
+            datasets.forEach(dataset => {
+                total += dataset.data[i];
+            });
+
+            if (total > 0) {
+                datasets.forEach(dataset => {
+                    dataset.data[i] = (dataset.data[i] / total) * 100;
+                });
+            }
+        }
+        charts.temporal.update();
+    }
 }
 
 // Render period comparison

@@ -52,6 +52,17 @@ const HOME_RANGES = {
 document.addEventListener('DOMContentLoaded', async () => {
     initializeEventListeners();
     initializeMaps();
+
+    // Load state from URL parameters
+    loadStateFromUrl();
+
+    // Listen for URL changes
+    window.addEventListener('popstate', async () => {
+        loadStateFromUrl();
+        updatePeriodAvailability();
+        await updateVisualization();
+    });
+
     updatePeriodAvailability();
     await updateVisualization();
 });
@@ -67,6 +78,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.elephant-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentElephant = e.target.dataset.elephant;
+            syncStateToUrl();
             updatePeriodAvailability();
             updateVisualization();
         });
@@ -78,6 +90,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.behavior-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentBehavior = e.target.dataset.behavior;
+            syncStateToUrl();
             updateVisualization();
         });
     });
@@ -88,6 +101,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.map-type-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentMapType = e.target.dataset.type;
+            syncStateToUrl();
             updateVisualization();
         });
     });
@@ -98,6 +112,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.comparison-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             comparisonMode = e.target.dataset.mode;
+            syncStateToUrl();
             switchComparisonMode(comparisonMode);
         });
     });
@@ -108,6 +123,7 @@ function initializeEventListeners() {
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentPeriod = e.target.dataset.period;
+            syncStateToUrl();
             updateVisualization();
         });
     });
@@ -115,11 +131,13 @@ function initializeEventListeners() {
     // Period comparison selects
     document.getElementById('period-left').addEventListener('change', (e) => {
         periodLeft = e.target.value;
+        syncStateToUrl();
         updateVisualization();
     });
 
     document.getElementById('period-right').addEventListener('change', (e) => {
         periodRight = e.target.value;
+        syncStateToUrl();
         updateVisualization();
     });
 
@@ -172,6 +190,16 @@ function initializeEventListeners() {
 
     // GIS Map Download
     document.getElementById('download-gis-map').addEventListener('click', exportGISMap);
+
+    // Copy Citation Link
+    const copyBtn = document.getElementById('copy-link');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert('Deep link copied to clipboard!\nYou can use this link to cite this exact view in your paper.');
+            });
+        });
+    }
 }
 
 // ============================================================================
@@ -829,4 +857,73 @@ function drawGISLegend(ctx, x, y) {
     ctx.font = '16px sans-serif';
     ctx.fillText('Low (Avoidance)', x, gradY + 50);
     ctx.fillText('High (Selection)', x + gradWidth - 110, gradY + 50);
+}
+
+// Deep Linking & State Management
+function syncStateToUrl() {
+    const params = new URLSearchParams();
+    params.set('elephant', currentElephant);
+    params.set('behavior', currentBehavior);
+    params.set('type', currentMapType);
+    params.set('mode', comparisonMode);
+
+    if (comparisonMode === 'single') {
+        params.set('period', currentPeriod);
+    } else {
+        params.set('left', periodLeft);
+        params.set('right', periodRight);
+    }
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+}
+
+function loadStateFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.has('elephant')) {
+        currentElephant = params.get('elephant');
+        document.querySelectorAll('.elephant-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.elephant === currentElephant);
+        });
+    }
+
+    if (params.has('behavior')) {
+        currentBehavior = params.get('behavior');
+        document.querySelectorAll('.behavior-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.behavior === currentBehavior);
+        });
+    }
+
+    if (params.has('type')) {
+        currentMapType = params.get('type');
+        document.querySelectorAll('.map-type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === currentMapType);
+        });
+    }
+
+    if (params.has('mode')) {
+        comparisonMode = params.get('mode');
+        document.querySelectorAll('.comparison-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === comparisonMode);
+        });
+        switchComparisonMode(comparisonMode);
+    }
+
+    if (params.has('period')) {
+        currentPeriod = params.get('period');
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.period === currentPeriod);
+        });
+    }
+
+    if (params.has('left')) {
+        periodLeft = params.get('left');
+        document.getElementById('period-left').value = periodLeft;
+    }
+
+    if (params.has('right')) {
+        periodRight = params.get('right');
+        document.getElementById('period-right').value = periodRight;
+    }
 }

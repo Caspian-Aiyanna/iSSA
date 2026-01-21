@@ -43,19 +43,20 @@ let metricsCharts = {
 // INITIALIZATION
 // ===================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Get elephant from URL parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const elephantParam = urlParams.get('elephant');
-    if (elephantParam && ELEPHANT_INFO[elephantParam]) {
-        currentElephant = elephantParam;
-        activeElephants = [currentElephant];
-    }
-
     initializeMap();
     initializeControls();
     initializeMetricsCharts();
 
-    // Auto-load data if elephant in URL
+    // Load state from URL parameters
+    loadStateFromUrl();
+
+    // Listen for URL changes
+    window.addEventListener('popstate', () => {
+        loadStateFromUrl();
+        loadAllActiveTrajectories();
+    });
+
+    // Auto-load data
     if (activeElephants.length > 0) {
         setTimeout(() => {
             loadAllActiveTrajectories();
@@ -108,9 +109,10 @@ function generateCitation() {
         return;
     }
     const date = new Date().toLocaleDateString();
-    const citation = `Kariega Elephant Project (2025). Behavioral Dataset: ${currentElephant}, Period: ${currentPeriod.toUpperCase()}. Accessed via Interactive SSA Platform on ${date}. DOI: 10.XXXX/SSA.EXP.${currentElephant}.${currentPeriod.toUpperCase()}`;
+    const url = window.location.href;
+    const citation = `Kariega Elephant Project (2025). Behavioral Dataset: ${currentElephant}, Period: ${currentPeriod.toUpperCase()}. Accessed via Interactive SSA Platform on ${date}. URL: ${url}`;
     navigator.clipboard.writeText(citation).then(() => {
-        alert('Citation copied to clipboard!\n\n' + citation);
+        alert('Citation and Deep Link copied to clipboard!\n\n' + citation);
     });
 }
 
@@ -493,6 +495,7 @@ function initializeControls() {
             }
             // UPDATE IMMEDIATELY for instant UI feedback
             updateElephantSelection();
+            syncStateToUrl();
             loadAllActiveTrajectories();
         });
     });
@@ -501,11 +504,15 @@ function initializeControls() {
         btn.addEventListener('click', () => {
             currentPeriod = btn.dataset.period;
             updatePeriodSelection();
+            syncStateToUrl();
             filterDataByPeriod();
         });
     });
 
-    document.querySelectorAll('.filter-checkbox input').forEach(cb => cb.addEventListener('change', renderTrajectory));
+    document.querySelectorAll('.filter-checkbox input').forEach(cb => cb.addEventListener('change', () => {
+        syncStateToUrl();
+        renderTrajectory();
+    }));
 
     const toggleAllBtn = document.getElementById('toggle-all-behaviors');
     if (toggleAllBtn) {
@@ -514,6 +521,7 @@ function initializeControls() {
             document.querySelectorAll('.behavior-filters-grid .filter-checkbox input').forEach(cb => {
                 cb.checked = isChecked;
             });
+            syncStateToUrl();
             renderTrajectory();
         });
     }
@@ -590,4 +598,48 @@ function updateFenceDisplay() {
         if (document.getElementById('show-fence').checked) map.addLayer(window.fenceLayer);
         else map.removeLayer(window.fenceLayer);
     }
+}
+
+// Deep Linking & State Management
+function syncStateToUrl() {
+    const params = new URLSearchParams();
+    if (currentElephant) params.set('elephant', currentElephant);
+    if (activeElephants.length > 0) params.set('active', activeElephants.join(','));
+    params.set('period', currentPeriod);
+
+    // Behaviors
+    const behaviors = Array.from(document.querySelectorAll('.filter-checkbox input:checked'))
+        .map(cb => cb.dataset.behavior);
+    if (behaviors.length > 0) params.set('behaviors', behaviors.join(','));
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+}
+
+function loadStateFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.has('elephant')) {
+        currentElephant = params.get('elephant');
+    }
+
+    if (params.has('active')) {
+        activeElephants = params.get('active').split(',');
+    } else if (currentElephant) {
+        activeElephants = [currentElephant];
+    }
+
+    if (params.has('period')) {
+        currentPeriod = params.get('period');
+        updatePeriodSelection();
+    }
+
+    if (params.has('behaviors')) {
+        const behaviors = params.get('behaviors').split(',');
+        document.querySelectorAll('.filter-checkbox input').forEach(cb => {
+            cb.checked = behaviors.includes(cb.dataset.behavior);
+        });
+    }
+
+    updateElephantSelection();
 }

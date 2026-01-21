@@ -52,7 +52,11 @@
                     <button id="download-chart" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
                         Save Image
                     </button>
-                    <button id="print-report" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
+                    <button id="copy-link" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
+                        Copy Link
+                    </button>
+                    <button id="print-report" class="elephant-btn"
+                        style="grid-column: span 2; padding: 0.5rem; font-size: 0.8rem;">
                         Print Report
                     </button>
                 </div>
@@ -279,6 +283,26 @@
                     <div class="analysis-selector" style="grid-template-columns: 1fr 1fr;">
                         <button class="mode-btn active" data-mode="absolute">Absolute (%)</button>
                         <button class="mode-btn" data-mode="delta">Delta (%)</button>
+                    </div>
+                </div>
+
+                <div id="seasonal-toggle-container" class="mt-md hidden">
+                    <h3 class="panel-subtitle"
+                        style="font-size: 0.75rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; text-transform: uppercase;">
+                        Seasonal View</h3>
+                    <div class="analysis-selector" style="grid-template-columns: 1fr 1fr;">
+                        <button class="seasonal-mode-btn active" data-mode="percent">Proportion (%)</button>
+                        <button class="seasonal-mode-btn" data-mode="count">Observations</button>
+                    </div>
+                </div>
+
+                <div id="temporal-toggle-container" class="mt-md hidden">
+                    <h3 class="panel-subtitle"
+                        style="font-size: 0.75rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; text-transform: uppercase;">
+                        Temporal View</h3>
+                    <div class="analysis-selector" style="grid-template-columns: 1fr 1fr;">
+                        <button class="temporal-mode-btn active" data-mode="percent">Proportion (%)</button>
+                        <button class="temporal-mode-btn" data-mode="count">Observations</button>
                     </div>
                 </div>
 
