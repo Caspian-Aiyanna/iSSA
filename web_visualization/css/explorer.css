@@ -445,7 +445,7 @@
 
 .current-time {
     font-family: var(--font-family-mono);
-    font-size: 1.125rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--color-text-primary);
     display: flex;

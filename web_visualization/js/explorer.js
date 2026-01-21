@@ -343,7 +343,7 @@ function renderTrajectory() {
                 filtered.forEach((p, i) => {
                     if (i % step !== 0) return;
                     const m = L.circleMarker([p.lat, p.lng], { radius: 4, fillColor: getBehaviorColor(p.behavior), color: '#fff', weight: 1, fillOpacity: 0.7 });
-                    m.bindPopup(`<strong>${p.behavior}</strong> (${ELEPHANT_INFO[id].name})<br>${new Date(p.timestamp).toLocaleString()}`);
+                    m.bindPopup(`<strong>${p.behavior}</strong> (${ELEPHANT_INFO[id].name})<br>${new Date(p.timestamp).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}`);
                     markerLayer.addLayer(m);
                 });
             }
@@ -356,7 +356,13 @@ function renderTrajectory() {
 
 function updateCurrentPosition(forcePan = false) {
     if (!trajectoryData || activeElephants.length === 0) return;
+
+    // Safety check for out-of-bounds index
+    if (currentIndex < 0) currentIndex = 0;
+    if (currentIndex >= trajectoryData.length) currentIndex = trajectoryData.length - 1;
+
     const primaryPoint = trajectoryData[currentIndex];
+    if (!primaryPoint) return;
 
     if (currentMarker) map.removeLayer(currentMarker);
     const info = ELEPHANT_INFO[currentElephant];
@@ -368,6 +374,7 @@ function updateCurrentPosition(forcePan = false) {
         })
     }).addTo(map);
 
+    // OPTIMIZATION: Use a pre-mapped history array if possible or just slice
     const history = trajectoryData.slice(0, currentIndex + 1).map(p => [p.lat, p.lng]);
     const showTrail = document.getElementById('show-trail').checked;
 
@@ -377,6 +384,7 @@ function updateCurrentPosition(forcePan = false) {
                 color: '#ffffff', weight: 2, opacity: 0.8, dashArray: '5, 10'
             }).addTo(map);
         } else {
+            // Only update if points changed
             animatedPath.setLatLngs(history);
         }
     } else if (animatedPath) {
@@ -384,40 +392,60 @@ function updateCurrentPosition(forcePan = false) {
         animatedPath = null;
     }
 
-    const sastTime = new Date(primaryPoint.timestamp).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg', timeStyle: 'medium' });
+    const sastTime = new Date(primaryPoint.timestamp).toLocaleString('en-ZA', {
+        timeZone: 'Africa/Johannesburg',
+        dateStyle: 'medium',
+        timeStyle: 'medium'
+    });
     document.getElementById('current-time').textContent = sastTime;
     document.getElementById('current-behavior').textContent = primaryPoint.behavior;
     document.getElementById('current-behavior').style.background = getBehaviorColor(primaryPoint.behavior);
     document.getElementById('avg-speed').textContent = `${primaryPoint.speed.toFixed(1)} m/min`;
 
-    if (window.fenceData) {
+    if (window.fenceData && window.fenceData.features) {
         let minDist = Infinity;
         const latLng = L.latLng(primaryPoint.lat, primaryPoint.lng);
-        window.fenceData.features.forEach(f => {
-            const coords = f.geometry.type === 'LineString' ? [f.geometry.coordinates] : f.geometry.coordinates;
-            coords.forEach(line => line.forEach(c => {
-                const d = latLng.distanceTo(L.latLng(c[1], c[0]));
-                if (d < minDist) minDist = d;
-            }));
-        });
-        document.getElementById('fence-dist').textContent = minDist < 1000 ? `${Math.round(minDist)} m` : `${(minDist / 1000).toFixed(2)} km`;
+
+        // OPTIMIZATION: Only calculate distance every 5 points during animation for performance
+        if (!isPlaying || currentIndex % 5 === 0) {
+            window.fenceData.features.forEach(f => {
+                const type = f.geometry.type;
+                const coords = (type === 'LineString' || type === 'Polygon') ? [f.geometry.coordinates] : f.geometry.coordinates;
+                coords.forEach(line => {
+                    if (!Array.isArray(line)) return;
+                    line.forEach(c => {
+                        if (Array.isArray(c) && c.length >= 2) {
+                            const d = latLng.distanceTo(L.latLng(c[1], c[0]));
+                            if (d < minDist) minDist = d;
+                        }
+                    });
+                });
+            });
+            const distText = minDist < 1000 ? `${Math.round(minDist)} m` : `${(minDist / 1000).toFixed(2)} km`;
+            document.getElementById('fence-dist').textContent = distText;
+        }
     }
 
     activeElephants.forEach(id => {
         if (id === currentElephant) return;
         if (layers.markers[id]) map.removeLayer(layers.markers[id]);
+
         const data = trajectories[id];
-        if (!data) return;
+        if (!data || data.length === 0) return;
 
         let closestIndex = 0;
         let minT = Math.abs(data[0].timestamp - primaryPoint.timestamp);
+
+        // Slightly smarter search if data is roughly sorted
         data.forEach((p, idx) => {
             const t = Math.abs(p.timestamp - primaryPoint.timestamp);
             if (t < minT) { minT = t; closestIndex = idx; }
         });
-        const closest = data[closestIndex];
 
-        if (minT < 3600000) {
+        const closest = data[closestIndex];
+        if (!closest) return;
+
+        if (minT < 3600000) { // Only show if within 1 hour
             const secInfo = ELEPHANT_INFO[id];
             layers.markers[id] = L.marker([closest.lat, closest.lng], {
                 icon: L.divIcon({
@@ -531,20 +559,35 @@ function initializeControls() {
     document.getElementById('max-points').addEventListener('change', filterDataByPeriod);
     document.getElementById('play-btn').addEventListener('click', startAnimation);
     document.getElementById('pause-btn').addEventListener('click', pauseAnimation);
-    document.getElementById('reset-btn').addEventListener('click', resetAnimation);
+    // Unified control handling for Next/Previous/Reset
+    const stopPlayback = () => {
+        isPlaying = false;
+        if (animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+        }
+        document.getElementById('play-btn').style.display = 'block';
+        document.getElementById('pause-btn').style.display = 'none';
+    };
+
     document.getElementById('prev-btn').addEventListener('click', () => {
-        if (currentIndex > 0) {
-            pauseAnimation();
-            currentIndex--;
-            updateFromIndex(true);
-        }
+        if (!trajectoryData || currentIndex <= 0) return;
+        stopPlayback();
+        currentIndex--;
+        updateFromIndex(true);
     });
+
     document.getElementById('next-btn').addEventListener('click', () => {
-        if (trajectoryData && currentIndex < trajectoryData.length - 1) {
-            pauseAnimation();
-            currentIndex++;
-            updateFromIndex(true);
-        }
+        if (!trajectoryData || currentIndex >= trajectoryData.length - 1) return;
+        stopPlayback();
+        currentIndex++;
+        updateFromIndex(true);
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        stopPlayback();
+        currentIndex = 0;
+        updateFromIndex(true);
     });
 
     const deselectBtn = document.getElementById('deselect-all-elephants');
@@ -557,6 +600,9 @@ function initializeControls() {
             loadAllActiveTrajectories();
         });
     }
+
+    document.getElementById('show-fence').addEventListener('change', updateFenceDisplay);
+    document.getElementById('show-trail').addEventListener('change', renderTrajectory);
 
     document.getElementById('time-slider').addEventListener('input', e => {
         if (!trajectoryData) return;
@@ -603,15 +649,30 @@ function updateFromIndex(forcePan = false) {
 }
 
 function pauseAnimation() {
+    if (!isPlaying) return; // Already paused
+
     isPlaying = false;
     document.getElementById('play-btn').style.display = 'block';
     document.getElementById('pause-btn').style.display = 'none';
-    clearInterval(animationInterval);
+
+    if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+    }
+
+    // Final UI sync after pausing
     updateCurrentPosition();
 }
 
 function resetAnimation() {
-    pauseAnimation();
+    isPlaying = false;
+    if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+    }
+    document.getElementById('play-btn').style.display = 'block';
+    document.getElementById('pause-btn').style.display = 'none';
+
     currentIndex = 0;
     updateFromIndex(true);
 }

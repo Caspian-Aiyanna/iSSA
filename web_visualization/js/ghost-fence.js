@@ -48,6 +48,26 @@ const BEHAVIOR_COLORS = {
     'Bounce': '#E41A1C'
 };
 
+// Helper to get date components in South African time (UTC+2)
+function getSASTComponents(date) {
+    if (!(date instanceof Date) || isNaN(date)) return { hour: 0, day: 1, month: 0, year: 2020 };
+    const options = { timeZone: 'Africa/Johannesburg', hour12: false };
+    const parts = new Intl.DateTimeFormat('en-US', {
+        ...options, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'
+    }).formatToParts(date);
+    const mapped = {};
+    parts.forEach(p => mapped[p.type] = p.value);
+    return {
+        hour: parseInt(mapped.hour) % 24,
+        minute: mapped.minute,
+        day: parseInt(mapped.day),
+        month: parseInt(mapped.month) - 1,
+        year: parseInt(mapped.year),
+        fullDate: `${mapped.month}/${mapped.day}/${mapped.year}`,
+        fullTime: `${mapped.hour}:${mapped.minute}`
+    };
+}
+
 // Projection setup
 proj4.defs("EPSG:32735", "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs");
 
@@ -209,7 +229,10 @@ function updateMaps(period) {
                 weight: 1.5,
                 opacity: 1,
                 fillOpacity: 0.9
-            }).bindPopup(`<b>Bounce Event</b><br>Time: ${pt.hour}:00<br>Behavior: ${pt.behavior}`)
+            }).bindPopup(() => {
+                const sast = getSASTComponents(new Date(pt.date || pt.Date));
+                return `<b>Bounce Event</b><br>Date: ${sast.fullDate}<br>Time: ${sast.fullTime}<br>Behavior: ${pt.behavior}`;
+            })
                 .addTo(layerGroup);
         });
 
@@ -375,7 +398,8 @@ function updateAnimationStep() {
 
     animationState.map.panTo(latlng);
     const displayLabel = pt.behavior === 'Resting' ? 'Low-energy' : pt.behavior;
-    document.getElementById('timestamp-label').textContent = `${displayLabel} (${pt.hour}:00)`;
+    const sast = getSASTComponents(new Date(pt.date || pt.Date));
+    document.getElementById('timestamp-label').textContent = `${displayLabel} (${sast.fullDate} ${sast.fullTime})`;
 }
 
 function initAnalytics() {

@@ -14,6 +14,31 @@ let heatmapInstance = null;
 let dataCache = {}; // Cache for CSV data (Individual and Period-specific)
 let populationCache = null; // High-level cache for ALL elephants (contains all stages)
 
+// Helper to get date components in South African time (UTC+2)
+function getSASTComponents(date) {
+    if (!(date instanceof Date) || isNaN(date)) return { hour: 0, day: 1, month: 0, year: 2020 };
+
+    // Use Intl API to extract components in SAST
+    const options = { timeZone: 'Africa/Johannesburg', hour12: false };
+    const parts = new Intl.DateTimeFormat('en-US', {
+        ...options,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric'
+    }).formatToParts(date);
+
+    const mapped = {};
+    parts.forEach(p => mapped[p.type] = p.value);
+
+    return {
+        hour: parseInt(mapped.hour) % 24,
+        day: parseInt(mapped.day),
+        month: parseInt(mapped.month) - 1, // JS 0-indexed months
+        year: parseInt(mapped.year)
+    };
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     setChartDefaults();
@@ -421,6 +446,9 @@ function calculateSummary(data) {
 
     const duration = minDate && maxDate ? Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)) : 0;
 
+    // Formatting date range for display in SAST
+    const formatDate = (d) => d ? d.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : 'N/A';
+
     return {
         total,
         behaviors,
@@ -448,9 +476,9 @@ function updateStatistics(summary) {
     document.getElementById('movement-pct').textContent = `${summary.percentages.movement}%`;
     document.getElementById('bounce-pct').textContent = `${summary.percentages.bounce}%`;
 
+    const formatDate = (d) => d ? d.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : 'N/A';
     if (summary.dateRange.min && summary.dateRange.max) {
-        const dateStr = `${summary.dateRange.min.toLocaleDateString()} - ${summary.dateRange.max.toLocaleDateString()}`;
-        document.getElementById('date-range').textContent = dateStr;
+        document.getElementById('date-range').textContent = `${formatDate(summary.dateRange.min)} - ${formatDate(summary.dateRange.max)}`;
     } else {
         document.getElementById('date-range').textContent = '-';
     }
@@ -483,7 +511,7 @@ function populateGlobalYearFilter() {
     behavioralData.data.forEach(row => {
         const date = new Date(row.date || row.Date);
         if (!isNaN(date)) {
-            years.add(date.getFullYear());
+            years.add(getSASTComponents(date).year);
         }
     });
 
@@ -515,7 +543,7 @@ function getFilteredData() {
 
     return behavioralData.data.filter(row => {
         const date = new Date(row.date || row.Date);
-        return !isNaN(date) && date.getFullYear() === parseInt(selectedYear);
+        return !isNaN(date) && getSASTComponents(date).year === parseInt(selectedYear);
     });
 }
 
@@ -772,12 +800,12 @@ function renderSeasonalPatterns() {
     // Clear all options except "All Years"
     yearSelect.innerHTML = '<option value="all">All Years</option>';
 
-    // Get unique years from current elephant's data
+    // Get unique years from current elephant's data in SAST
     const years = new Set();
     behavioralData.data.forEach(row => {
         const date = new Date(row.date || row.Date);
         if (!isNaN(date)) {
-            years.add(date.getFullYear());
+            years.add(getSASTComponents(date).year);
         }
     });
 
@@ -811,14 +839,14 @@ function renderSeasonalPatterns() {
     if (yearSelect.value !== 'all') {
         filteredData = filteredData.filter(row => {
             const date = new Date(row.date || row.Date);
-            return !isNaN(date) && date.getFullYear() === parseInt(yearSelect.value);
+            return !isNaN(date) && getSASTComponents(date).year === parseInt(yearSelect.value);
         });
     }
 
     if (selectedMonth !== 'all') {
         filteredData = filteredData.filter(row => {
             const date = new Date(row.date || row.Date);
-            return !isNaN(date) && (date.getMonth() + 1) === parseInt(selectedMonth);
+            return !isNaN(date) && (getSASTComponents(date).month + 1) === parseInt(selectedMonth);
         });
     }
 
@@ -834,7 +862,7 @@ function renderSeasonalPatterns() {
     filteredData.forEach(row => {
         const date = new Date(row.date || row.Date);
         if (!isNaN(date)) {
-            const month = date.getMonth();
+            const month = getSASTComponents(date).month;
             let behavior = row.behavior || row.Behavior || row.state;
             if (behavior === 'Resting') behavior = 'Low-energy';
 
@@ -1065,7 +1093,7 @@ function renderTemporalPattern() {
     filteredData.forEach(row => {
         const date = new Date(row.date || row.Date);
         if (!isNaN(date)) {
-            const hour = date.getHours();
+            const hour = getSASTComponents(date).hour;
             // Handle both 'behavior' and 'Behavior' columns
             let behavior = row.behavior || row.Behavior || row.state;
             if (behavior === 'Resting') behavior = 'Low-energy';
@@ -1263,7 +1291,7 @@ async function renderPeriodComparison() {
             if (selectedYear !== 'all') {
                 filtered = filtered.filter(row => {
                     const date = new Date(row.date || row.Date);
-                    return !isNaN(date) && date.getFullYear() === parseInt(selectedYear);
+                    return !isNaN(date) && getSASTComponents(date).year === parseInt(selectedYear);
                 });
             }
             periodAggregates[period] = filtered;
@@ -1316,7 +1344,7 @@ async function renderPeriodComparison() {
                         if (selectedYear !== 'all') {
                             filtered = filtered.filter(row => {
                                 const date = new Date(row.date || row.Date);
-                                return !isNaN(date) && date.getFullYear() === parseInt(selectedYear);
+                                return !isNaN(date) && getSASTComponents(date).year === parseInt(selectedYear);
                             });
                         }
                         localPeriodData[period] = filtered;
