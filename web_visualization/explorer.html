@@ -46,9 +46,9 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Overview</a></li>
                 <li><a href="methodology.html" class="nav-link">Methodology</a></li>
-                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="explorer.html" class="nav-link active">Trajectory Explorer</a></li>
                 <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
+                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="rsf-comparison.html" class="nav-link">RSF Comparison</a></li>
             </ul>
         </div>
@@ -281,7 +281,7 @@
                 <h3 class="panel-title">Study Period</h3>
                 <div class="period-selector">
                     <button class="period-btn active" data-period="pre">
-                        <span class="period-label">Pre</span>
+                        <span class="period-label">PRE - HOME RANGE</span>
                         <span class="period-desc">Before Removal</span>
                     </button>
                     <button class="period-btn" data-period="interim">
@@ -289,7 +289,7 @@
                         <span class="period-desc">During Removal</span>
                     </button>
                     <button class="period-btn" data-period="post">
-                        <span class="period-label">Post</span>
+                        <span class="period-label">POST - NOVEL RANGE</span>
                         <span class="period-desc">After Removal</span>
                     </button>
                 </div>
@@ -351,11 +351,11 @@
                 <div style="margin-top: var(--spacing-md);">
                     <select id="max-points"
                         style="width: 100%; padding: var(--spacing-sm); background: var(--color-bg-tertiary); color: var(--color-text-primary); border: 1px solid var(--glass-border); border-radius: var(--radius-sm);">
-                        <option value="500">500 (Fast)</option>
-                        <option value="1000">1000 (Standard)</option>
-                        <option value="2000">2000 (Detailed)</option>
-                        <option value="5000">5000 (Full Detail)</option>
-                        <option value="all" selected>All Points (Warning: Slow)</option>
+                        <option value="500">resample to 500 points</option>
+                        <option value="1000" selected>resample to 1000 points</option>
+                        <option value="2000">resample to 2000 points</option>
+                        <option value="5000">resample to 5000 points</option>
+                        <option value="all">All Points (Warning: Slow)</option>
                     </select>
                 </div>
             </div>

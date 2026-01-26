@@ -282,6 +282,7 @@ function filterDataByPeriod() {
 
     renderTrajectory();
     updateStatistics();
+    updateMetricsCharts();
     if (activeElephants.length > 0) {
         showDataStatus('success', `Loaded ${activeElephants.length} active trajectories`);
     }
@@ -351,6 +352,7 @@ function renderTrajectory() {
     });
 
     if (hasData) map.fitBounds(allBounds, { padding: [50, 50] });
+    updateMetricsCharts();
     resetAnimation();
 }
 
@@ -474,7 +476,12 @@ function updateCurrentPosition(forcePan = false) {
 
     const nearbyNames = activeElephants.filter(id => id !== currentElephant && layers.markers[id]).map(id => ELEPHANT_INFO[id].name);
     document.getElementById('co-travel-list').textContent = nearbyNames.length > 0 ? nearbyNames.join(', ') : 'None nearby';
-    updateMetricsHighlight(currentIndex);
+
+    // Smoothly update metrics highlight
+    if (!isPlaying || currentIndex % 2 === 0) {
+        updateMetricsHighlight(currentIndex);
+    }
+
     if (isPlaying || forcePan) map.panTo([primaryPoint.lat, primaryPoint.lng], { animate: true });
 }
 
@@ -604,6 +611,13 @@ function initializeControls() {
     document.getElementById('show-fence').addEventListener('change', updateFenceDisplay);
     document.getElementById('show-trail').addEventListener('change', renderTrajectory);
 
+    const exportBtn = document.getElementById('export-map');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            alert('To export the map view, please use the Browser Print function (Ctrl+P) or a screen capture tool. High-resolution GIS export is available in the RSF Comparison page.');
+        });
+    }
+
     document.getElementById('time-slider').addEventListener('input', e => {
         if (!trajectoryData) return;
         currentIndex = Math.floor((e.target.value / 100) * (trajectoryData.length - 1));
@@ -678,10 +692,38 @@ function resetAnimation() {
 }
 
 function updateMetricsHighlight(idx) {
-    if (metricsCharts.speed && trajectoryData) {
-        metricsCharts.speed.setActiveElements([{ datasetIndex: 0, index: idx }]);
-        metricsCharts.speed.update('none');
+    if (metricsCharts.speed && trajectoryData && metricsCharts.speed.data.datasets[0].data.length > idx) {
+        try {
+            metricsCharts.speed.setActiveElements([{ datasetIndex: 0, index: idx }]);
+            metricsCharts.speed.update('none');
+        } catch (e) {
+            console.warn('Metrics highlight failed:', e);
+        }
     }
+}
+
+function updateMetricsCharts() {
+    if (!trajectoryData || !metricsCharts.speed || !metricsCharts.tortuosity) return;
+
+    // Sample data if too large for performance
+    let displayData = trajectoryData;
+    const maxChartPoints = 500;
+    if (trajectoryData.length > maxChartPoints) {
+        const step = Math.floor(trajectoryData.length / maxChartPoints);
+        displayData = trajectoryData.filter((_, i) => i % step === 0);
+    }
+
+    const labels = displayData.map(p => new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    const speeds = displayData.map(p => p.speed);
+    const turns = displayData.map(p => p.turnAngle);
+
+    metricsCharts.speed.data.labels = labels;
+    metricsCharts.speed.data.datasets[0].data = speeds;
+    metricsCharts.speed.update('none');
+
+    metricsCharts.tortuosity.data.labels = labels;
+    metricsCharts.tortuosity.data.datasets[0].data = turns;
+    metricsCharts.tortuosity.update('none');
 }
 
 

@@ -37,9 +37,9 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Overview</a></li>
                 <li><a href="methodology.html" class="nav-link">Methodology</a></li>
-                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="explorer.html" class="nav-link">Trajectory Explorer</a></li>
                 <li><a href="behavioral.html" class="nav-link">Behavioral Analysis</a></li>
+                <li><a href="ghost-fence.html" class="nav-link">Ghost Fence</a></li>
                 <li><a href="rsf-comparison.html" class="nav-link active">RSF Comparison</a></li>
             </ul>
         </div>
@@ -135,7 +135,7 @@
             </div>
 
             <!-- Single Map View -->
-            <div class="map-container" id="single-map-container">
+            <div class="map-container hidden" id="single-map-container">
                 <div id="single-map" class="map-canvas"></div>
                 <div class="map-legend">
                     <div class="legend-title">Selection Intensity</div>
@@ -148,14 +148,14 @@
             </div>
 
             <!-- Side-by-Side Map View -->
-            <div class="map-container hidden" id="side-by-side-container">
+            <div class="map-container" id="side-by-side-container">
                 <div class="split-maps">
                     <div class="split-map-panel">
-                        <div class="split-map-header" id="left-map-title">Pre Period</div>
+                        <div class="split-map-header" id="left-map-title">PRE - HOME RANGE</div>
                         <div id="left-map" class="map-canvas"></div>
                     </div>
                     <div class="split-map-panel">
-                        <div class="split-map-header" id="right-map-title">Post Period</div>
+                        <div class="split-map-header" id="right-map-title">POST - NOVEL RANGE</div>
                         <div id="right-map" class="map-canvas"></div>
                     </div>
                 </div>
@@ -189,32 +189,32 @@
                 </div>
             </div>
 
-            <div class="panel-section" id="single-period-controls">
+            <div class="panel-section hidden" id="single-period-controls">
                 <h3 class="panel-title">Study Period</h3>
                 <div class="period-selector">
-                    <button class="period-btn active" data-period="pre">Pre</button>
+                    <button class="period-btn active" data-period="pre">PRE - HOME RANGE</button>
                     <button class="period-btn" data-period="interim">Interim</button>
-                    <button class="period-btn" data-period="post">Post</button>
+                    <button class="period-btn" data-period="post">POST - NOVEL RANGE</button>
                 </div>
             </div>
 
-            <div class="panel-section hidden" id="comparison-period-controls">
+            <div class="panel-section" id="comparison-period-controls">
                 <h3 class="panel-title">Compare Periods</h3>
                 <div class="period-comparison-grid">
                     <div class="period-select-group">
                         <label>Left Layer</label>
                         <select id="period-left" class="period-select">
-                            <option value="pre" selected>Pre</option>
+                            <option value="pre" selected>PRE - HOME RANGE</option>
                             <option value="interim">Interim</option>
-                            <option value="post">Post</option>
+                            <option value="post">POST - NOVEL RANGE</option>
                         </select>
                     </div>
                     <div class="period-select-group">
                         <label>Right Layer</label>
                         <select id="period-right" class="period-select">
-                            <option value="pre">Pre</option>
+                            <option value="pre">PRE - HOME RANGE</option>
                             <option value="interim">Interim</option>
-                            <option value="post" selected>Post</option>
+                            <option value="post" selected>POST - NOVEL RANGE</option>
                         </select>
                     </div>
                 </div>
@@ -253,8 +253,8 @@
             <div class="panel-section">
                 <h3 class="panel-title">View Mode</h3>
                 <div class="comparison-selector">
-                    <button class="comparison-btn active" data-mode="single">Single</button>
-                    <button class="comparison-btn" data-mode="side-by-side">Side-by-Side</button>
+                    <button class="comparison-btn" data-mode="single">Single</button>
+                    <button class="comparison-btn active" data-mode="side-by-side">Side-by-Side</button>
                     <button class="comparison-btn" data-mode="overlay">Overlay</button>
                 </div>
             </div>

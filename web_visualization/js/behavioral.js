@@ -652,8 +652,10 @@ function switchAnalysisView(analysisType) {
         targetElement.classList.remove('hidden');
     }
 
-    // Update visualization
-    updateVisualization();
+    // Update visualization with a small delay to ensure DOM is ready
+    requestAnimationFrame(() => {
+        updateVisualization();
+    });
 }
 
 // Update visualization based on current analysis type
@@ -1398,7 +1400,7 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
 
     if (periodData.PRE) {
         datasets.push({
-            label: isDelta ? 'Pre (Baseline)' : 'Pre',
+            label: isDelta ? 'PRE (Baseline)' : 'PRE - HOME RANGE',
             data: behaviors.map(b => isDelta ? 0 : periodData.PRE.percentages[b]),
             backgroundColor: currentPeriod === 'PRE' ? 'rgba(59, 130, 246, 0.9)' : 'rgba(59, 130, 246, 0.4)',
             borderColor: 'rgb(59, 130, 246)',
@@ -1409,11 +1411,7 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
     if (periodData.INTERIM) {
         datasets.push({
             label: isDelta ? 'Interim (Δ %)' : 'Interim',
-            data: behaviors.map(b => {
-                const val = periodData.INTERIM.percentages[b];
-                const baseline = periodData.PRE ? periodData.PRE.percentages[b] : 0;
-                return isDelta ? (val - baseline) : val;
-            }),
+            data: behaviors.map(b => isDelta ? (periodData.INTERIM.percentages[b] - (periodData.PRE ? periodData.PRE.percentages[b] : 0)) : periodData.INTERIM.percentages[b]),
             backgroundColor: currentPeriod === 'INTERIM' ? 'rgba(245, 158, 11, 0.9)' : 'rgba(245, 158, 11, 0.4)',
             borderColor: 'rgb(245, 158, 11)',
             borderWidth: currentPeriod === 'INTERIM' ? 2 : 1
@@ -1422,12 +1420,8 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
 
     if (periodData.POST) {
         datasets.push({
-            label: isDelta ? 'Post (Δ %)' : 'Post',
-            data: behaviors.map(b => {
-                const val = periodData.POST.percentages[b];
-                const baseline = periodData.PRE ? periodData.PRE.percentages[b] : 0;
-                return isDelta ? (val - baseline) : val;
-            }),
+            label: isDelta ? 'POST (Δ %)' : 'POST - NOVEL RANGE',
+            data: behaviors.map(b => isDelta ? (periodData.POST.percentages[b] - (periodData.PRE ? periodData.PRE.percentages[b] : 0)) : periodData.POST.percentages[b]),
             backgroundColor: currentPeriod === 'POST' ? 'rgba(16, 185, 129, 0.9)' : 'rgba(16, 185, 129, 0.4)',
             borderColor: 'rgb(16, 185, 129)',
             borderWidth: currentPeriod === 'POST' ? 2 : 1

@@ -255,8 +255,8 @@ window.elephantPlatform = {
 
     // Period metadata
     periods: {
-        'pre': { label: 'Pre-Fence Removal', color: '#3b82f6', showFence: true },
+        'pre': { label: 'PRE - HOME RANGE', color: '#3b82f6', showFence: true },
         'interim': { label: 'Interim Period', color: '#f59e0b', showFence: true },
-        'post': { label: 'Post-Fence Removal', color: '#10b981', showFence: false }
+        'post': { label: 'POST - NOVEL RANGE', color: '#10b981', showFence: false }
     }
 };

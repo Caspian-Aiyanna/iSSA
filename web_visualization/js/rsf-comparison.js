@@ -9,7 +9,7 @@ let currentElephant = 'E3';
 let currentBehavior = 'Foraging';
 let currentMapType = 'Realized';
 let currentPeriod = 'pre';
-let comparisonMode = 'single';
+let comparisonMode = 'side-by-side';
 let periodLeft = 'pre';
 let periodRight = 'post';
 
@@ -423,9 +423,12 @@ async function loadRasterLayer(elephant, period, behavior, type, map) {
         const arrayBuffer = await response.arrayBuffer();
         const georaster = await parseGeoraster(arrayBuffer);
 
-        // SPATIAL ALIGNMENT: Enforce UTM Zone 35S (EPSG:32735) for Kariega study area
-        const isProjected = Math.abs(georaster.xmin) > 1000 || Math.abs(georaster.ymin) > 1000;
-        if (isProjected) {
+        // SPATIAL ALIGNMENT: Explicitly define CRS for georaster-layer-for-leaflet
+        // Math.abs(xmin) < 360 && Math.abs(ymin) < 90 implies WGS84 (degrees)
+        if (Math.abs(georaster.xmin) < 360 && Math.abs(georaster.ymin) < 90) {
+            georaster.projection = 4326;
+            georaster.crs = "EPSG:4326";
+        } else {
             georaster.projection = 32735;
             georaster.crs = "EPSG:32735";
         }
@@ -485,8 +488,40 @@ async function loadRasterLayer(elephant, period, behavior, type, map) {
         return layer;
     } catch (error) {
         console.error(`Error loading raster layer:`, error);
+
+        // Custom error handling for missing files
+        const mapContainer = map.getContainer();
+        const behaviorDisplay = behavior === 'Resting' ? 'Low-energy' : behavior;
+        const msg = type === 'Usage'
+            ? `RSF Prediction (Usage) for ${behaviorDisplay} behavior is not available for this elephant/period.`
+            : `Realized Occupancy data is missing for this selection.`;
+
+        showNoDataOverlay(mapContainer, msg);
         return null;
     }
+}
+
+function showNoDataOverlay(container, message) {
+    // Remove existing if any
+    const existing = container.querySelector('.no-data-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'no-data-overlay';
+    overlay.style.cssText = 'position:absolute; top:0; left:0; right:0; bottom:0; padding: 20px; background:rgba(10,14,26,0.8); color:#f8fafc; z-index:1000; display:flex; align-items:center; justify-content:center; text-align:center; font-family:Inter,sans-serif; backdrop-filter:blur(4px);';
+    overlay.innerHTML = `
+        <div style="max-width: 300px;">
+            <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" fill="none" style="margin-bottom:15px; color:#94a3b8; margin-left:auto; margin-right:auto; display:block;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h4 style="margin-bottom:8px; font-weight:600;">Data Unavailable</h4>
+            <p style="font-size:0.875rem; color:#94a3b8; line-height:1.5;">${message}</p>
+            <button onclick="this.parentElement.parentElement.remove()" style="margin-top:15px; padding:6px 12px; background:var(--color-accent-primary); border:none; border-radius:4px; color:white; cursor:pointer; font-size:0.75rem;">Dismiss</button>
+        </div>
+    `;
+    container.appendChild(overlay);
 }
 
 
@@ -499,10 +534,20 @@ async function updateVisualization() {
 
     try {
         if (comparisonMode === 'single') {
+            const container = document.getElementById('single-map');
+            const overlay = container.querySelector('.no-data-overlay');
+            if (overlay) overlay.remove();
             await renderSingleMap();
         } else if (comparisonMode === 'side-by-side') {
+            ['left-map', 'right-map'].forEach(id => {
+                const overlay = document.getElementById(id).querySelector('.no-data-overlay');
+                if (overlay) overlay.remove();
+            });
             await renderSideBySide();
         } else if (comparisonMode === 'overlay') {
+            const container = document.getElementById('single-map');
+            const overlay = container.querySelector('.no-data-overlay');
+            if (overlay) overlay.remove();
             await renderOverlay();
         }
 
@@ -548,8 +593,14 @@ async function renderSideBySide() {
     }
 
     // Update map titles
-    document.getElementById('left-map-title').textContent = `${periodLeft.toUpperCase()} Period`;
-    document.getElementById('right-map-title').textContent = `${periodRight.toUpperCase()} Period`;
+    const formatLabel = (p) => {
+        if (p === 'pre') return 'PRE - HOME RANGE';
+        if (p === 'post') return 'POST - NOVEL RANGE';
+        return p.toUpperCase() + ' Period';
+    };
+
+    document.getElementById('left-map-title').textContent = formatLabel(periodLeft);
+    document.getElementById('right-map-title').textContent = formatLabel(periodRight);
 
     // Load left raster
     leftRasterLayer = await loadRasterLayer(
@@ -650,12 +701,18 @@ function updateMapTitle() {
     const displayBehavior = currentBehavior === 'Resting' || currentBehavior === 'resting' ? 'Low-energy' : currentBehavior;
     let title = `RSF ${currentMapType} - ${currentElephant} ${displayBehavior}`;
 
+    const getPeriodStr = (p) => {
+        if (p === 'pre') return 'PRE - HOME RANGE';
+        if (p === 'post') return 'POST - NOVEL RANGE';
+        return p.toUpperCase();
+    };
+
     if (comparisonMode === 'single') {
-        title += ` (${currentPeriod.toUpperCase()})`;
+        title += ` (${getPeriodStr(currentPeriod)})`;
     } else if (comparisonMode === 'side-by-side') {
-        title += ` (${periodLeft.toUpperCase()} vs ${periodRight.toUpperCase()})`;
+        title += ` (${getPeriodStr(periodLeft)} vs ${getPeriodStr(periodRight)})`;
     } else if (comparisonMode === 'overlay') {
-        title += ` (${periodLeft.toUpperCase()} + ${periodRight.toUpperCase()} Overlay)`;
+        title += ` (${getPeriodStr(periodLeft)} + ${getPeriodStr(periodRight)} Overlay)`;
     }
 
     const titleEl = document.getElementById('map-title');
@@ -712,16 +769,17 @@ async function exportGISMap() {
     await new Promise(r => setTimeout(r, 600));
 
     try {
-        const mapContainerId = comparisonMode === 'single' ? 'single-map' : 'left-map';
-        const mapElement = document.getElementById(mapContainerId);
+        const isSideBySide = comparisonMode === 'side-by-side';
+        const mapElement = document.getElementById(isSideBySide ? 'side-by-side-container' : 'single-map-container');
 
-        // Capture with high scale for GIS clarity
+        // Capture map area
         const canvas = await html2canvas(mapElement, {
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#0a0e1a',
             scale: 2,
-            logging: false
+            logging: false,
+            ignoreElements: (el) => el.classList.contains('leaflet-control-container') || el.id === 'loading-overlay'
         });
 
         // Restore UI
@@ -731,28 +789,22 @@ async function exportGISMap() {
         const elephantNameEl = document.getElementById('elephant-name');
         const elephantName = elephantNameEl ? elephantNameEl.textContent : currentElephant;
         const behaviorName = currentBehavior;
-        const periodName = currentPeriod.toUpperCase();
 
         const gisCanvas = document.createElement('canvas');
         const gisCtx = gisCanvas.getContext('2d');
-        gisCanvas.width = 1200;
-        gisCanvas.height = 1600;
+
+        // Adjust for side-by-side (landscape-ish) vs single (portrait-ish)
+        if (isSideBySide) {
+            gisCanvas.width = 1800;
+            gisCanvas.height = 1200;
+        } else {
+            gisCanvas.width = 1200;
+            gisCanvas.height = 1600;
+        }
 
         // Background
         gisCtx.fillStyle = '#111827';
         gisCtx.fillRect(0, 0, gisCanvas.width, gisCanvas.height);
-
-        // 2. Aspect Ratio Correction
-        const sourceAspect = canvas.width / canvas.height;
-        const mapY = 150;
-        const mapWidth = gisCanvas.width - 80;
-        let mapHeight = mapWidth / sourceAspect;
-
-        // Prevent overflow
-        if (mapHeight > 1150) mapHeight = 1150;
-
-        // Draw Map
-        gisCtx.drawImage(canvas, 40, mapY, mapWidth, mapHeight);
 
         // Header
         gisCtx.fillStyle = '#ffffff';
@@ -761,23 +813,38 @@ async function exportGISMap() {
 
         gisCtx.font = '24px Inter, sans-serif';
         gisCtx.fillStyle = '#94a3b8';
-        gisCtx.fillText(`${elephantName} | ${behaviorName} | BACI: ${periodName}`, 40, 100);
+        const periodDisplay = isSideBySide ?
+            `${periodLeft.toUpperCase()} vs ${periodRight.toUpperCase()}` :
+            `BACI: ${currentPeriod.toUpperCase()}`;
+        gisCtx.fillText(`${elephantName} | ${behaviorName} | ${periodDisplay}`, 40, 100);
 
-        // 3. Dynamic Elements Positioning
+        // Map drawing
+        const sourceAspect = canvas.width / canvas.height;
+        const mapY = 150;
+        const mapWidth = gisCanvas.width - 80;
+        let mapHeight = mapWidth / sourceAspect;
+
+        // Constrain height
+        const maxMapHeight = gisCanvas.height - 350;
+        if (mapHeight > maxMapHeight) {
+            mapHeight = maxMapHeight;
+        }
+
+        gisCtx.drawImage(canvas, 40, mapY, mapWidth, mapHeight);
+
+        // Dynamic Elements
         drawNorthArrow(gisCtx, gisCanvas.width - 100, mapY + 60);
         drawScaleBar(gisCtx, 80, mapY + mapHeight - 30);
-
-        const legendY = mapY + mapHeight + 60;
-        drawGISLegend(gisCtx, 40, legendY);
+        drawGISLegend(gisCtx, 40, mapY + mapHeight + 60);
 
         // Footer
         gisCtx.fillStyle = '#475569';
         gisCtx.font = '16px Inter, sans-serif';
-        gisCtx.fillText(`Source: Kariega Elephant Study | Exported: ${dateStr}`, 40, 1550);
-        gisCtx.fillText('Coordinate System: WGS 84 / Web Mercator', 40, 1575);
+        gisCtx.fillText(`Source: Kariega Elephant Study | Exported: ${dateStr}`, 40, gisCanvas.height - 50);
+        gisCtx.fillText('Coordinate System: WGS 84 / Web Mercator', 40, gisCanvas.height - 25);
 
         const link = document.createElement('a');
-        link.download = `GIS_Map_${currentElephant}_${currentPeriod}_${behaviorName}.png`;
+        link.download = `GIS_Map_${currentElephant}_${behaviorName}_${comparisonMode}.png`;
         link.href = gisCanvas.toDataURL('image/png', 1.0);
         link.click();
 

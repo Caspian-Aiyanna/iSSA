@@ -34,12 +34,11 @@ if (!dir.exists(pts_out_dir)) dir.create(pts_out_dir, recursive = TRUE)
 target_crs <- 32735 # UTM 35S
 cache_file <- file.path(out_dir, "hmm_results_all_elephants.rds")
 
-# BACI Time Periods
-# Synchronized with 04_ecological_behavior_analysis_v5.R
+# BACI Time Periods (Strictly synchronized with 04_v5 protocol)
 periods <- list(
-    pre     = interval(ymd("2020-01-01"), ymd("2023-12-09")),
-    interim = interval(ymd("2023-12-10"), ymd("2024-02-09")),
-    post    = interval(ymd("2024-02-10"), ymd("2026-12-31"))
+    pre     = interval(ymd("2020-01-01"), ymd("2023-11-30")),
+    interim = interval(ymd("2023-12-01"), ymd("2024-02-06")),
+    post    = interval(ymd("2024-02-07"), ymd("2026-12-31"))
 )
 
 # Custom Color Scale (Blue = Low, Red = High)
@@ -130,34 +129,10 @@ for (stg in names(periods)) {
             next
         }
 
-        # Define availability mask based on elephant ID and period
-        # E1, E2, E3, E4: Use KW for all periods
-        # E5, E6: Use HV for PRE, study area for INTERIM/POST
-        # E3, E4, E5: Use study area for INTERIM/POST
-
-        if (ele_id %in% c("E1", "E2")) {
-            # E1, E2: Always use KW
-            mask_poly <- st_make_valid(kw_sf)
-            cat(sprintf("  %s | %s: Using KW boundary for RSF masking\n", ele_id, toupper(stg)))
-        } else if (ele_id %in% c("E3", "E4")) {
-            # E3, E4: Use KW for PRE, study area for INTERIM/POST
-            if (stg == "pre") {
-                mask_poly <- st_make_valid(kw_sf)
-                cat(sprintf("  %s | %s: Using KW boundary for RSF masking\n", ele_id, toupper(stg)))
-            } else {
-                mask_poly <- study_area_union
-                cat(sprintf("  %s | %s: Using study area boundary for RSF masking\n", ele_id, toupper(stg)))
-            }
-        } else if (ele_id %in% c("E5", "E6")) {
-            # E5, E6: Use HV for PRE, study area for INTERIM/POST
-            if (stg == "pre") {
-                mask_poly <- st_make_valid(hv_sf)
-                cat(sprintf("  %s | %s: Using HV boundary for RSF masking\n", ele_id, toupper(stg)))
-            } else {
-                mask_poly <- study_area_union
-                cat(sprintf("  %s | %s: Using study area boundary for RSF masking\n", ele_id, toupper(stg)))
-            }
-        }
+        # Define availability mask: Use entire study area for all periods (Pre, Interim, Post)
+        # as requested for unified habitat selection modeling across the whole reserve.
+        mask_poly <- study_area_union
+        cat(sprintf("  %s | %s: Using entire study area (unified reserve) for RSF masking\n", ele_id, toupper(stg)))
 
         mask_poly <- st_collection_extract(st_make_valid(mask_poly), "POLYGON") %>% st_union()
         mask_vect <- terra::vect(st_transform(mask_poly, stack_crs))
@@ -171,10 +146,6 @@ for (stg in names(periods)) {
         for (bh in c("Sleeping", "Resting", "Foraging", "Movement")) {
             # Skip if output already exists to save time/memory
             final_tif <- file.path(stg_dir, sprintf("Realized_%s_%s_%s.tif", ele_id, stg, bh))
-            if (file.exists(final_tif)) {
-                cat(sprintf("  Skipping finished model: %s | %s | %s\n", ele_id, stg, bh))
-                next
-            }
 
             bh_pts <- pts_stg %>% filter(behavior == bh)
             if (nrow(bh_pts) < 10) next

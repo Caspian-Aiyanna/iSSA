@@ -176,7 +176,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- Wageningen University & Research
 - Kariega Private Game Reserve
 - All contributors to the elephant tracking and analysis project
 
