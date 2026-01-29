@@ -12,6 +12,7 @@ let currentTemporalMode = 'percent'; // 'percent' or 'count'
 let charts = {};
 let heatmapInstance = null;
 let dataCache = {}; // Cache for CSV data (Individual and Period-specific)
+let rawElephantDataCache = {}; // Cache for RAW CSV data (All periods per elephant)
 let populationCache = null; // High-level cache for ALL elephants (contains all stages)
 
 // Helper to get date components in South African time (UTC+2)
@@ -106,82 +107,46 @@ function initializeEventListeners() {
         });
     });
 
-    // Analysis type selection
-    document.querySelectorAll('.analysis-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.analysis-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            currentAnalysis = e.target.dataset.analysis;
-            syncStateToUrl();
-            switchAnalysisView(currentAnalysis);
+    // Dashboard Card Interactions
+    document.querySelectorAll('.mini-viz-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            // Prevent if clicking on controls inside the card (if any)
+            if (e.target.closest('select') || e.target.closest('button')) return;
+            openModal(card.dataset.viz);
         });
     });
 
-    // Download chart
-    document.getElementById('download-chart').addEventListener('click', downloadCurrentChart);
+    // Modal Controls
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeModal);
+    }
 
-    // Print report
-    const printBtn = document.getElementById('print-report');
-    if (printBtn) {
-        printBtn.addEventListener('click', () => {
-            window.print();
+    const modal = document.getElementById('viz-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
         });
     }
 
-    // Copy Citation Link
-    const copyBtn = document.getElementById('copy-link');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = 'Copied!';
-                setTimeout(() => copyBtn.textContent = originalText, 2000);
-            });
-        });
-    }
+    // Download chart (Update to download active modal chart or default to first?)
+    document.getElementById('download-chart')?.addEventListener('click', downloadCurrentChart);
 
-    // Global year filter (applies to all analysis types)
+    // Global year filter
     document.getElementById('global-year-select').addEventListener('change', () => {
         updateVisualization();
     });
 
-    // Seasonal pattern controls (month filter only for seasonal)
+    // Seasonal pattern controls
     document.getElementById('year-select').addEventListener('change', () => {
-        if (currentAnalysis === 'seasonal') renderSeasonalPatterns();
+        renderSeasonalPatterns();
     });
 
     document.getElementById('month-select').addEventListener('change', () => {
-        if (currentAnalysis === 'seasonal') renderSeasonalPatterns();
-    });
-
-    // BACI Mode toggle
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            currentBaciMode = e.target.dataset.mode;
-            if (currentAnalysis === 'comparison') renderPeriodComparison();
-        });
-    });
-
-    document.querySelectorAll('.seasonal-mode-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.seasonal-mode-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            currentSeasonalMode = e.target.dataset.mode;
-            syncStateToUrl();
-            if (currentAnalysis === 'seasonal') renderSeasonalPatterns();
-        });
-    });
-
-    document.querySelectorAll('.temporal-mode-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.temporal-mode-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            currentTemporalMode = e.target.dataset.mode;
-            syncStateToUrl();
-            if (currentAnalysis === 'temporal') renderTemporalPattern();
-        });
+        renderSeasonalPatterns();
     });
 }
 
@@ -217,28 +182,7 @@ function loadStateFromUrl() {
         });
     }
 
-    if (params.has('analysis')) {
-        currentAnalysis = params.get('analysis');
-        // Update UI
-        document.querySelectorAll('.analysis-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.analysis === currentAnalysis);
-        });
-        switchAnalysisView(currentAnalysis);
-    }
-
-    if (params.has('seasonalMode')) {
-        currentSeasonalMode = params.get('seasonalMode');
-        document.querySelectorAll('.seasonal-mode-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === currentSeasonalMode);
-        });
-    }
-
-    if (params.has('temporalMode')) {
-        currentTemporalMode = params.get('temporalMode');
-        document.querySelectorAll('.temporal-mode-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === currentTemporalMode);
-        });
-    }
+    // Analysis param is deprecated in dashboard view but we keep listener for compatibility
 }
 
 // Load behavioral data
@@ -257,7 +201,7 @@ async function loadBehavioralData(elephant, period) {
     } catch (error) {
         console.error('Error loading behavioral data:', error);
         showLoading(false);
-        alert('Error loading data. Please check the console for details.');
+        // Do not alert, just log. Persistent alerts are annoying.
     }
 }
 
@@ -265,7 +209,7 @@ async function loadBehavioralData(elephant, period) {
 async function loadSingleElephant(elephant, period) {
     const cacheKey = `${elephant}_${period}`;
 
-    // Check cache first
+    // Check processed cache first 
     if (dataCache[cacheKey]) {
         console.log(`Using cached data for ${elephant} (${period})`);
         behavioralData = {
@@ -279,132 +223,150 @@ async function loadSingleElephant(elephant, period) {
         return;
     }
 
-    const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
+    let rawData = [];
 
-    return new Promise((resolve, reject) => {
-        Papa.parse(csvPath, {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: (results) => {
-                let data = results.data.filter(row => row.x_m && row.y_m);
+    // Check raw cache (Full CSV data)
+    if (rawElephantDataCache[elephant]) {
+        console.log(`Using RAW cached data for ${elephant}`);
+        rawData = rawElephantDataCache[elephant];
+    } else {
+        // Load from CSV
+        const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
+        try {
+            rawData = await new Promise((resolve, reject) => {
+                Papa.parse(csvPath, {
+                    download: true,
+                    header: true,
+                    dynamicTyping: true,
+                    // WORKER: false to ensure synchronous processing in callback or handle properly? 
+                    // Main thread is fine for these CSV sizes (<10MB typical)
+                    complete: (results) => {
+                        try {
+                            const validData = results.data.filter(row => row.x_m && row.y_m);
+                            // Add Elephant ID if missing
+                            validData.forEach(row => { if (!row.elephant_id) row.elephant_id = elephant; });
 
-                // Filter by period if not ALL
-                if (period !== 'ALL') {
-                    data = data.filter(row => {
-                        const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
-                        return rowStage === period.trim().toUpperCase();
-                    });
-                }
+                            // Store in RAW cache
+                            rawElephantDataCache[elephant] = validData;
+                            resolve(validData);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    },
+                    error: (error) => reject(error)
+                });
+            });
+        } catch (err) {
+            console.error(`Failed to load CSV for ${elephant}:`, err);
+            throw err;
+        }
+    }
 
-                const summary = calculateSummary(data);
-
-                // Save to cache
-                dataCache[cacheKey] = {
-                    data: data,
-                    summary: summary
-                };
-
-                behavioralData = {
-                    elephant: elephant,
-                    period: period,
-                    data: data,
-                    summary: summary
-                };
-
-                updateStatistics(behavioralData.summary);
-                updateVisualization();
-                resolve();
-            },
-            error: (error) => reject(error)
+    // Filter by period if not ALL
+    let filteredData = rawData;
+    if (period !== 'ALL') {
+        filteredData = rawData.filter(row => {
+            const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
+            return rowStage === period.trim().toUpperCase();
         });
-    });
+    }
+
+    const summary = calculateSummary(filteredData);
+
+    // Save to processed cache
+    dataCache[cacheKey] = {
+        data: filteredData,
+        summary: summary
+    };
+
+    behavioralData = {
+        elephant: elephant,
+        period: period,
+        data: filteredData,
+        summary: summary
+    };
+
+    updateStatistics(behavioralData.summary);
+    updateVisualization();
 }
 
 // Load aggregate data (All, Males, or Females)
 async function loadAllElephants(period, mode = 'ALL') {
-    const cacheKey = `${mode}_${period}`;
-
     // Check high-level population cache first
-    if (populationCache) {
-        console.log(`Using population cache for ${mode} period: ${period}`);
-        let filteredData = populationCache;
-
-        // Filter by sex if requested
-        if (mode === 'MALES') {
-            filteredData = populationCache.filter(row => ['E1', 'E2', 'E6'].includes(row.elephant_id));
-        } else if (mode === 'FEMALES') {
-            filteredData = populationCache.filter(row => ['E3', 'E4', 'E5'].includes(row.elephant_id));
-        }
-
-        // Filter by period
-        if (period !== 'ALL') {
-            filteredData = filteredData.filter(row => {
-                const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
-                return rowStage === period.toUpperCase();
-            });
-        }
-
-        const summary = calculateSummary(filteredData);
-        behavioralData = {
-            elephant: mode,
-            period: period,
-            data: filteredData,
-            summary: summary
-        };
-        updateStatistics(behavioralData.summary);
+    if (populationCache && mode === 'ALL' && period === 'ALL') {
+        // Direct hit on population cache
+        const summary = calculateSummary(populationCache);
+        behavioralData = { elephant: mode, period: period, data: populationCache, summary: summary };
+        updateStatistics(summary);
         updateVisualization();
         return;
     }
 
+    // Determine target elephants
     const elephants = mode === 'MALES' ? ['E1', 'E2', 'E6'] :
         mode === 'FEMALES' ? ['E3', 'E4', 'E5'] :
             ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'];
+
     let allData = [];
 
-    const loadPromises = elephants.map(elephant => {
-        const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
-        return new Promise((resolve, reject) => {
-            Papa.parse(csvPath, {
-                download: true,
-                header: true,
-                dynamicTyping: true,
-                complete: (results) => {
-                    const data = results.data.filter(row => row.x_m && row.y_m);
-                    data.forEach(row => row.elephant_id = elephant);
-                    resolve(data);
-                },
-                error: (error) => reject(error)
-            });
-        });
-    });
-
-    try {
-        const results = await Promise.all(loadPromises);
-        results.forEach(data => {
-            allData = allData.concat(data);
-        });
-
-        // Only populate full population cache if we loaded everyone
-        if (mode === 'ALL') {
-            populationCache = allData;
+    // Load each elephant required
+    for (const elephant of elephants) {
+        let eleData = [];
+        if (rawElephantDataCache[elephant]) {
+            eleData = rawElephantDataCache[elephant];
+        } else {
+            // Load and Cache
+            const csvPath = `data/behavioral_points/${elephant}_behavioral_points.csv`;
+            try {
+                eleData = await new Promise((resolve, reject) => {
+                    Papa.parse(csvPath, {
+                        download: true,
+                        header: true,
+                        dynamicTyping: true,
+                        complete: (results) => {
+                            try {
+                                const validData = results.data.filter(row => row.x_m && row.y_m);
+                                validData.forEach(row => { if (!row.elephant_id) row.elephant_id = elephant; });
+                                rawElephantDataCache[elephant] = validData;
+                                resolve(validData);
+                            } catch (e) { reject(e); }
+                        },
+                        error: reject
+                    });
+                });
+            } catch (e) {
+                console.error(`Failed to load ${elephant} for aggregate:`, e);
+                // Continue to next elephant? Or fail? let's continue with partial data
+                continue;
+            }
         }
-
-        const summary = calculateSummary(allData);
-
-        behavioralData = {
-            elephant: mode,
-            period: period,
-            data: allData,
-            summary: summary
-        };
-
-        updateStatistics(behavioralData.summary);
-        updateVisualization();
-    } catch (error) {
-        console.error('Population load failed:', error);
-        throw error;
+        allData = allData.concat(eleData);
     }
+
+    // If mode is ALL, populate populationCache
+    if (mode === 'ALL') {
+        populationCache = allData;
+    }
+
+    // Filter by period if needed
+    let filteredData = allData;
+    if (period !== 'ALL') {
+        filteredData = allData.filter(row => {
+            const rowStage = (row.Stage || row.stage || '').trim().toUpperCase();
+            return rowStage === period.toUpperCase();
+        });
+    }
+
+    const summary = calculateSummary(filteredData);
+    behavioralData = {
+        elephant: mode,
+        period: period,
+        data: filteredData,
+        summary: summary
+    };
+
+    updateStatistics(behavioralData.summary);
+    updateVisualization();
 }
 
 // Calculate summary statistics
@@ -590,93 +552,194 @@ function updateElephantProfile() {
     }
 }
 
-// Switch analysis view
-function switchAnalysisView(analysisType) {
-    // Update current analysis state - CRITICAL FIX
-    currentAnalysis = analysisType;
-
-    // Hide all containers
-    document.querySelectorAll('.viz-container').forEach(container => {
-        container.classList.add('hidden');
-    });
-
-    // Update title
-    const titles = {
-        'time-budget': 'Time Budget Analysis',
-        'seasonal': 'Seasonal Behavioral Patterns',
-        'temporal': 'Temporal Activity Pattern',
-        'comparison': 'Period Comparison'
-    };
-    document.getElementById('viz-title').textContent = titles[analysisType];
-
-    // BACI mode toggle visibility
-    const baciContainer = document.getElementById('baci-mode-container');
-    if (baciContainer) {
-        if (analysisType === 'comparison') {
-            baciContainer.classList.remove('hidden');
-        } else {
-            baciContainer.classList.add('hidden');
-        }
-    }
-
-    // Seasonal mode toggle visibility
-    const seasonalModeContainer = document.getElementById('seasonal-toggle-container');
-    if (seasonalModeContainer) {
-        if (analysisType === 'seasonal') {
-            seasonalModeContainer.classList.remove('hidden');
-        } else {
-            seasonalModeContainer.classList.add('hidden');
-        }
-    }
-
-    // Temporal mode toggle visibility
-    const temporalModeContainer = document.getElementById('temporal-toggle-container');
-    if (temporalModeContainer) {
-        if (analysisType === 'temporal') {
-            temporalModeContainer.classList.remove('hidden');
-        } else {
-            temporalModeContainer.classList.add('hidden');
-        }
-    }
-
-    // Show selected container
-    const containerMap = {
-        'time-budget': 'time-budget-container',
-        'seasonal': 'seasonal-container',
-        'temporal': 'temporal-container',
-        'comparison': 'comparison-container'
-    };
-    const targetId = containerMap[analysisType];
-    const targetElement = document.getElementById(targetId);
-    if (targetElement) {
-        targetElement.classList.remove('hidden');
-    }
-
-    // Update visualization with a small delay to ensure DOM is ready
-    requestAnimationFrame(() => {
-        updateVisualization();
-    });
-}
-
-// Update visualization based on current analysis type
+// Update visualization - Renders ALL charts for the dashboard
 function updateVisualization() {
     // Check if we have data to work with
     if (!behavioralData.data) return;
 
-    switch (currentAnalysis) {
-        case 'time-budget':
-            renderTimeBudgetChart();
-            break;
-        case 'seasonal':
-            renderSeasonalPatterns();
-            break;
-        case 'temporal':
-            renderTemporalPattern();
-            break;
-        case 'comparison':
-            renderPeriodComparison();
-            break;
+    // Render all charts
+    // We wrap in timeouts/animation frames to prevent main thread blocking and ensure canvas readiness
+    requestAnimationFrame(() => {
+        try { renderTimeBudgetChart(); } catch (e) { console.error('Time Budget failed:', e); }
+        try { renderSeasonalPatterns(); } catch (e) { console.error('Seasonal Patterns failed:', e); }
+        try { renderTemporalPattern(); } catch (e) { console.error('Temporal Pattern failed:', e); }
+        try { renderPeriodComparison(); } catch (e) { console.error('Period Comparison failed:', e); }
+
+        // Handle Modal resizing if active
+        if (activeModalChart) {
+            const chartKey = activeModalMapping[activeModalChart];
+            if (charts[chartKey]) charts[chartKey].resize();
+        }
+    });
+}
+
+// Modal State Management
+let activeModalChart = null;
+const activeModalMapping = {
+    'time-budget': 'timeBudget',
+    'seasonal': 'seasonal',
+    'temporal': 'temporal',
+    'comparison': 'comparison'
+};
+
+function getTitleForViz(type) {
+    const titles = {
+        'time-budget': 'Time Budget Analysis',
+        'seasonal': 'Seasonal Behavioral Patterns',
+        'temporal': 'Temporal Activity Pattern (24h)',
+        'comparison': 'BACI Period Comparison'
+    };
+    return titles[type] || 'Chart';
+}
+
+function openModal(vizType) {
+    activeModalChart = vizType;
+    const modal = document.getElementById('viz-modal');
+    const stage = document.getElementById('modal-chart-stage');
+    const controlsStage = document.getElementById('modal-controls-stage');
+    const modalTitle = document.getElementById('modal-title');
+
+    modalTitle.textContent = getTitleForViz(vizType);
+
+    // Get the mini-container
+    const containerId = `container-${vizType}`;
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const canvas = container.querySelector('canvas');
+
+    if (canvas) {
+        // Move canvas to modal stage (Reparenting preserves the Chart.js instance)
+        stage.appendChild(canvas);
     }
+
+    // Move specific controls
+    if (vizType === 'seasonal') {
+        const controls = document.getElementById('controls-seasonal');
+        if (controls && controls.firstElementChild) {
+            controlsStage.appendChild(controls.firstElementChild);
+        }
+    } else {
+        controlsStage.innerHTML = '';
+    }
+
+    modal.classList.add('active');
+
+    // Force resize AFTER the modal is visible so dimensions are correct
+    if (canvas) {
+        const chartKey = activeModalMapping[vizType];
+        const chart = charts[chartKey];
+        if (chart) {
+            // Apply modal font sizes (Enlarge Axis and Legend)
+            updateChartFontSizes(chart, 'modal');
+
+            // Wait for DOM to finish layout
+            setTimeout(() => {
+                // Ensure canvas doesn't have fixed style dimensions that interfere
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+
+                chart.resize();
+                chart.update('none');
+            }, 100);
+        }
+    }
+}
+
+/**
+ * Helper to update chart font sizes for different view modes
+ * @param {Chart} chart 
+ * @param {string} mode 'mini' or 'modal'
+ */
+function updateChartFontSizes(chart, mode) {
+    if (!chart) return;
+    const isModal = mode === 'modal';
+
+    // Scale factors
+    const tickSize = isModal ? 18 : 12;
+    const axisTitleSize = isModal ? 20 : 14;
+    const legendSize = isModal ? 18 : 13;
+    const mainTitleSize = isModal ? 24 : 16;
+    const padding = isModal ? 30 : 15;
+
+    // Update Scales (Axis)
+    if (chart.options.scales) {
+        Object.entries(chart.options.scales).forEach(([key, scale]) => {
+            // Ticks (Axis numbers/labels)
+            if (!scale.ticks) scale.ticks = {};
+            if (!scale.ticks.font) scale.ticks.font = {};
+            scale.ticks.font.size = (key === 'x2') ? tickSize + 2 : tickSize; // Make seasonal period labels even larger
+            scale.ticks.padding = isModal ? 10 : 3;
+
+            // Axis Titles
+            if (scale.title && scale.title.display) {
+                if (!scale.title.font) scale.title.font = {};
+                scale.title.font.size = axisTitleSize;
+                scale.title.font.weight = '700';
+            }
+        });
+    }
+
+    // Update Legend
+    if (chart.options.plugins && chart.options.plugins.legend) {
+        if (!chart.options.plugins.legend.labels) chart.options.plugins.legend.labels = {};
+        if (!chart.options.plugins.legend.labels.font) chart.options.plugins.legend.labels.font = {};
+        chart.options.plugins.legend.labels.font.size = legendSize;
+        chart.options.plugins.legend.labels.padding = padding;
+    }
+
+    // Update Chart Title
+    if (chart.options.plugins && chart.options.plugins.title) {
+        if (!chart.options.plugins.title.font) chart.options.plugins.title.font = {};
+        chart.options.plugins.title.font.size = mainTitleSize;
+        chart.options.plugins.title.padding = isModal ? 30 : 10;
+    }
+
+    chart.update('none');
+}
+
+function closeModal() {
+    if (!activeModalChart) return;
+    const vizType = activeModalChart;
+    const modal = document.getElementById('viz-modal');
+
+    // Restore canvas
+    const containerId = `container-${vizType}`;
+    const container = document.getElementById(containerId);
+    const stage = document.getElementById('modal-chart-stage');
+    const canvas = stage.querySelector('canvas');
+    if (canvas) {
+        container.appendChild(canvas);
+        const chartKey = activeModalMapping[vizType];
+        const chart = charts[chartKey];
+        if (chart) {
+            // Restore mini font sizes
+            updateChartFontSizes(chart, 'mini');
+
+            // Restore small styling
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            chart.resize();
+            chart.update('none');
+        }
+    }
+
+    // Restore controls
+    const controlsStage = document.getElementById('modal-controls-stage');
+    if (vizType === 'seasonal' && controlsStage.firstElementChild) {
+        const controlsHiddenContainer = document.getElementById('controls-seasonal');
+        if (controlsHiddenContainer) {
+            controlsHiddenContainer.appendChild(controlsStage.firstElementChild);
+        }
+    }
+
+    modal.classList.remove('active');
+    activeModalChart = null;
+}
+
+// De-activated switch analysis (Legacy)
+function switchAnalysisView(analysisType) {
+    // No-op in Dashboard mode
+    console.log('Dashboard mode active - analysis switch ignored');
 }
 
 // Render time budget pie chart
@@ -792,8 +855,12 @@ function renderSeasonalPatterns() {
     }
 
     // Get selected year and month
-    const selectedYear = document.getElementById('year-select').value;
-    const selectedMonth = document.getElementById('month-select').value;
+    const yearSelectEl = document.getElementById('year-select');
+    const monthSelectEl = document.getElementById('month-select');
+    if (!yearSelectEl || !monthSelectEl) return;
+
+    const selectedYear = yearSelectEl.value;
+    const selectedMonth = monthSelectEl.value;
 
     // ALWAYS repopulate year selector based on current elephant's data
     const yearSelect = document.getElementById('year-select');
@@ -901,9 +968,10 @@ function renderSeasonalPatterns() {
         periodText = monthNames[parseInt(selectedMonth) - 1];
     }
 
-    document.getElementById('seasonal-period-text').textContent = periodText;
-    document.getElementById('seasonal-obs').textContent = filteredData.length.toLocaleString();
-    document.getElementById('seasonal-dominant').textContent = dominantBehavior;
+    // Update summary removed for dashboard view - can be added back if dedicated elements exist
+    // document.getElementById('seasonal-period-text').textContent = periodText;
+    // document.getElementById('seasonal-obs').textContent = filteredData.length.toLocaleString();
+    // document.getElementById('seasonal-dominant').textContent = dominantBehavior;
 
     // Render chart
     charts.seasonal = new Chart(ctx, {
@@ -1067,10 +1135,8 @@ function renderTemporalPattern() {
     if (!canvas) return;
 
     // Ensure container is visible before rendering to prevent dimension issues
-    const container = document.getElementById('temporal-container');
-    if (container.classList.contains('hidden')) {
-        container.classList.remove('hidden');
-    }
+    // Dashboard mode: container is always visible
+
 
     const ctx = canvas.getContext('2d');
 
@@ -1500,31 +1566,28 @@ function renderBACIComparisonUI(ctx, periodData, elephantId, currentPeriod) {
 
 // Download current chart
 function downloadCurrentChart() {
-    const originalCanvas = document.querySelector('.viz-container:not(.hidden) canvas');
+    let originalCanvas;
+    let fallbackFilename = 'elephant_analysis';
+
+    // 1. If modal is open, download THAT chart
+    if (activeModalChart) {
+        const stage = document.getElementById('modal-chart-stage');
+        originalCanvas = stage.querySelector('canvas');
+        fallbackFilename = activeModalChart;
+    }
+    // 2. Otherwise, default to the Time Budget chart (top-left)
+    else {
+        originalCanvas = document.getElementById('time-budget-chart');
+        fallbackFilename = 'time_budget_overview';
+    }
+
     if (!originalCanvas) {
-        console.error('No visible canvas found to download');
+        console.error('No canvas found to download');
         return;
     }
 
     const dateStr = new Date().toISOString().split('T')[0];
-    let filename;
-
-    switch (currentAnalysis) {
-        case 'time-budget':
-            filename = `time_budget_${currentElephant}_${currentPeriod}_${dateStr}.png`;
-            break;
-        case 'seasonal':
-            filename = `seasonal_pattern_${currentElephant}_${currentPeriod}_${dateStr}.png`;
-            break;
-        case 'temporal':
-            filename = `temporal_activity_${currentElephant}_${currentPeriod}_${dateStr}.png`;
-            break;
-        case 'comparison':
-            filename = `period_comparison_${currentElephant}_${dateStr}.png`;
-            break;
-        default:
-            filename = `elephant_chart_${dateStr}.png`;
-    }
+    const filename = `${fallbackFilename}_${currentElephant}_${currentPeriod}_${dateStr}.png`;
 
     // Create a temporary canvas to add the background
     const tempCanvas = document.createElement('canvas');
