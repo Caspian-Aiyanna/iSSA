@@ -46,22 +46,7 @@
     <div class="behavioral-container">
         <!-- Left Panel - Info & Summary -->
         <div class="info-panel">
-            <div class="panel-section">
-                <h3 class="panel-title">Actions</h3>
-                <div class="action-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
-                    <button id="download-chart" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
-                        Save Image
-                    </button>
-                    <button id="copy-link" class="elephant-btn" style="padding: 0.5rem; font-size: 0.8rem;">
-                        Copy Link
-                    </button>
-                    <button id="print-report" class="elephant-btn"
-                        style="grid-column: span 2; padding: 0.5rem; font-size: 0.8rem;">
-                        Print Report
-                    </button>
-                </div>
-                <p class="filter-hint mt-sm">Export current analysis results</p>
-            </div>
+
             <div class="panel-section">
                 <h3 class="panel-title">Elephant Profile</h3>
                 <div class="elephant-profile-card" id="elephant-profile">
@@ -152,79 +137,93 @@
 
         <!-- Center Visualization Area -->
         <div class="visualization-area">
-            <div class="viz-header">
-                <h2 id="viz-title">Time Budget Analysis</h2>
-                <div class="viz-controls">
-                    <button class="btn-icon" id="download-chart" title="Download Chart">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                    </button>
-                </div>
+            <div class="dashboard-header"
+                style="padding: var(--spacing-md) var(--spacing-xl); background: var(--color-bg-secondary); border-bottom: 1px solid var(--glass-border);">
+                <h2 style="font-size: 1.25rem; margin: 0; color: var(--color-text-primary);">Dashboard Overview</h2>
+                <p style="font-size: 0.8rem; color: var(--color-text-tertiary); margin: 0;">Click on any chart to
+                    enlarge and view details</p>
             </div>
 
-            <!-- Time Budget Chart -->
-            <div class="viz-container" id="time-budget-container">
-                <div class="time-budget-layout">
-                    <div class="chart-section" style="width: 100%;">
+            <div class="dashboard-grid">
+                <!-- Card 1: Time Budget -->
+                <div class="mini-viz-card" data-viz="time-budget">
+                    <div class="card-header-mini">Time Budget</div>
+                    <div class="mini-chart-container" id="container-time-budget">
                         <canvas id="time-budget-chart"></canvas>
                     </div>
                 </div>
-            </div>
 
-            <!-- Seasonal Patterns -->
-            <div class="viz-container hidden" id="seasonal-container">
-                <div class="seasonal-controls">
-                    <div class="control-group">
-                        <label>Year:</label>
-                        <select id="year-select" class="seasonal-select">
-                            <option value="all">All Years</option>
-                        </select>
+                <!-- Card 2: Seasonal -->
+                <div class="mini-viz-card" data-viz="seasonal">
+                    <div class="card-header-mini">Seasonal Patterns</div>
+                    <div class="mini-chart-container" id="container-seasonal">
+                        <canvas id="seasonal-chart"></canvas>
                     </div>
-                    <div class="control-group">
-                        <label>Month:</label>
-                        <select id="month-select" class="seasonal-select">
-                            <option value="all">All Months</option>
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
+                    <!-- Hidden controls to be moved to modal -->
+                    <div id="controls-seasonal" class="hidden-controls">
+                        <div class="seasonal-controls"
+                            style="margin: 0; padding: 10px; background: transparent; border: none;">
+                            <div class="control-group">
+                                <label>Year:</label>
+                                <select id="year-select" class="seasonal-select">
+                                    <option value="all">All Years</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>Month:</label>
+                                <select id="month-select" class="seasonal-select">
+                                    <option value="all">All Months</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="seasonal-summary" id="seasonal-summary">
-                    <div class="summary-card">
-                        <div class="summary-label">Selected Period</div>
-                        <div class="summary-value" id="seasonal-period-text">All Data</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-label">Observations</div>
-                        <div class="summary-value" id="seasonal-obs">-</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-label">Dominant Behavior</div>
-                        <div class="summary-value" id="seasonal-dominant">-</div>
+
+                <!-- Card 3: Temporal -->
+                <div class="mini-viz-card" data-viz="temporal">
+                    <div class="card-header-mini">Temporal (24h)</div>
+                    <div class="mini-chart-container" id="container-temporal">
+                        <canvas id="temporal-chart"></canvas>
                     </div>
                 </div>
-                <canvas id="seasonal-chart"></canvas>
+
+                <!-- Card 4: Comparison -->
+                <div class="mini-viz-card" data-viz="comparison">
+                    <div class="card-header-mini">BACI Comparison</div>
+                    <div class="mini-chart-container" id="container-comparison">
+                        <canvas id="comparison-chart"></canvas>
+                    </div>
+                </div>
             </div>
 
-            <!-- Temporal Pattern Chart -->
-            <div class="viz-container hidden" id="temporal-container">
-                <canvas id="temporal-chart"></canvas>
-            </div>
-
-            <!-- Period Comparison Chart -->
-            <div class="viz-container hidden" id="comparison-container">
-                <canvas id="comparison-chart"></canvas>
+            <!-- Visualization Modal -->
+            <div id="viz-modal" class="viz-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-title">Chart Title</h3>
+                        <button class="close-modal" id="close-modal-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="modal-chart-stage" class="modal-chart-stage">
+                            <!-- Chart moves here -->
+                        </div>
+                        <div id="modal-controls-stage" class="modal-controls-stage">
+                            <!-- Relevant controls move here -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="loading-overlay" id="loading-overlay">
@@ -260,15 +259,6 @@
                 </div>
             </div>
 
-            <div class="panel-section">
-                <h3 class="panel-title">Analysis Mode</h3>
-                <div class="analysis-selector">
-                    <button class="analysis-btn active" data-analysis="time-budget">Time Budget</button>
-                    <button class="analysis-btn" data-analysis="seasonal">Seasonal Patterns</button>
-                    <button class="analysis-btn" data-analysis="temporal">Temporal Day/Night</button>
-                    <button class="analysis-btn" data-analysis="comparison">BACI Comparison</button>
-                </div>
-            </div>
 
             <div class="panel-section">
                 <h3 class="panel-title">Refine View</h3>
