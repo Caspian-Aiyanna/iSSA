@@ -88,7 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
             loadAllActiveTrajectories();
         }, 500);
     } else {
-        showDataStatus('info', '<strong>Select an elephant</strong> to begin exploring trajectories.');
+        // Ensure Welcome Screen is visible on fresh load
+        const welcomeOverlay = document.getElementById('welcome-overlay');
+        if (welcomeOverlay) welcomeOverlay.style.display = 'flex';
+        showDataStatus('info', '<span style="font-size: 1.1rem; font-weight: 600;">Begin Your Journey</span><br>Please choose one or more elephants from the right panel.');
     }
 
     // Citation listener
@@ -191,30 +194,45 @@ async function initializeMap() {
 // DATA LOADING & OPTIMIZATION
 // ===================================
 async function loadAllActiveTrajectories() {
+    const welcomeOverlay = document.getElementById('welcome-overlay');
+    const loadingOverlay = document.getElementById('loading');
+
+    // CASE 1: No Elephants Selected -> Show Welcome Screen
     if (activeElephants.length === 0) {
-        showDataStatus('info', '<strong>Select an elephant</strong> to begin.');
+        if (welcomeOverlay) welcomeOverlay.style.display = 'flex';
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+
+        showDataStatus('info', '<span style="font-size: 1.1rem; font-weight: 600;">Begin Your Journey</span><br>Please choose one or more elephants from the right panel.');
         renderTrajectory();
         return;
     }
 
+    // CASE 2: Loading Data -> Show Loading Screen
+    if (welcomeOverlay) welcomeOverlay.style.display = 'none';
+    if (loadingOverlay) loadingOverlay.style.display = 'flex';
+
     showDataStatus('loading', `Syncing trajectories...`);
-    document.getElementById('loading').style.display = 'flex';
 
     try {
         for (const id of activeElephants) {
             if (!rawDatasets[id]) {
+                // Update loading text dynamically if possible
+                const loadingText = document.getElementById('loading-text');
+                if (loadingText) loadingText.textContent = `Tracking ${ELEPHANT_INFO[id].name}...`;
                 await loadElephantData(id);
             }
         }
 
         if (currentElephant) fullDataset = rawDatasets[currentElephant];
         filterDataByPeriod();
-        document.getElementById('loading').style.display = 'none';
+
+        // CASE 3: Loading Complete -> Hide All Overlays
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
         updateElephantSelection();
     } catch (error) {
         console.error('Error loading data:', error);
         showDataStatus('error', `Loading failed: ${error.message}`);
-        document.getElementById('loading').style.display = 'none';
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
     }
 }
 

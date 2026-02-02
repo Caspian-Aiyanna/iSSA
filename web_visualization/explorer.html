@@ -243,18 +243,35 @@
                 </div>
             </div>
 
-            <!-- Loading Indicator -->
-            <div class="loading-overlay" id="loading">
+            <!-- Welcome Overlay (Start Screen) -->
+            <div class="loading-overlay" id="welcome-overlay" style="z-index: 1001;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🐘</div>
+                <h2 style="color: white; font-size: 2rem; margin-bottom: 10px;">Begin Your Journey</h2>
+                <p style="font-size: 1.2rem; max-width: 400px; text-align: center; line-height: 1.6;">
+                    Please choose one or more elephants from the right panel to visualize their movement patterns across
+                    the Kariega landscape.
+                </p>
+                <div style="margin-top: 30px; opacity: 0.6; font-size: 0.9rem;">
+                    Select an Elephant →
+                </div>
+            </div>
+
+            <!-- Loading Indicator (Processing State) -->
+            <div class="loading-overlay" id="loading" style="display: none;">
                 <div class="spinner"></div>
-                <p>Loading trajectory data...</p>
+                <p id="loading-text" style="font-size: 1.1rem; color: #e2e8f0; font-weight: 500; margin-top: 20px;">
+                    Tracking Elephant Movements...
+                </p>
             </div>
 
             <!-- Data Status -->
             <div class="data-status" id="data-status">
-                <div class="status-icon">ℹ️</div>
+                <div class="status-icon">🐘</div>
                 <div class="status-message">
-                    <strong>Welcome to Trajectory Explorer!</strong><br>
-                    Select an elephant and period to view movement data.
+                    <span style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary);">Begin Your
+                        Journey</span><br>
+                    <span style="font-size: 1rem;">Please choose one or more elephants from the right panel to visualize
+                        their movement.</span>
                 </div>
             </div>
         </div>
